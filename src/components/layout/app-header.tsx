@@ -6,10 +6,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard" },
   { href: "/generate", label: "Generate" },
   { href: "/history", label: "History" },
-  { href: "/settings", label: "Settings" },
 ];
 
 export function AppHeader() {
@@ -18,7 +16,7 @@ export function AppHeader() {
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-14 items-center px-4">
-        <Link href="/" className="mr-8 font-semibold text-lg">
+        <Link href="/generate" className="mr-8 text-lg font-semibold">
           Payslip Generator
         </Link>
         <nav className="flex items-center gap-1">

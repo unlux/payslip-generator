@@ -3,32 +3,23 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
-import { useCompanies } from "@/hooks/use-companies";
-import { useEmployees } from "@/hooks/use-employees";
-import { usePayslips } from "@/hooks/use-payslips";
-import { DEFAULT_FIELD_VISIBILITY, LIMITS, MONTHS } from "@/lib/constants";
+import { MONTHS } from "@/lib/constants";
 import { getCurrencySymbol } from "@/lib/currencies";
 import { amountToWords } from "@/lib/amount-to-words";
-import type {
-  Company,
-  CustomField,
-  Employee,
-  FieldVisibilitySettings,
-  PayComponent,
-} from "@/types";
+import {
+  COMPANY,
+  CEO_NAME,
+  EMPLOYEES,
+  DEFAULT_EARNINGS,
+  DEFAULT_DEDUCTIONS,
+} from "@/lib/payslip-config";
+import type { PayComponent } from "@/types";
 import {
   PayslipDocument,
   type PayslipDocumentProps,
 } from "@/components/pdf/payslip-document";
 import { InlineInput } from "./inline-input";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -36,78 +27,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, ImageIcon, Plus, Settings, Trash2, X } from "lucide-react";
+import { Download, ImageIcon, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { SKILLION_LOGO } from "@/lib/default-logo";
-
-const FIELD_LABELS: Record<keyof FieldVisibilitySettings, string> = {
-  companyAddress: "Company Address",
-  companyCity: "Company City",
-  companyPincode: "Company Pincode",
-  companyLogo: "Company Logo",
-  employeeId: "Employee ID",
-  uan: "UAN",
-  pan: "PAN",
-  bankAccountNumber: "Bank Account No.",
-  designation: "Designation",
-  paidDays: "Paid Days",
-  lopDays: "LOP Days",
-  paymentDate: "Payment Date",
-  payPeriod: "Pay Period",
-  customFields: "Custom Fields",
-};
 
 export function PayslipEditor() {
-  const { companies, getCompanyById } = useCompanies();
-  const { getByCompany } = useEmployees();
-  const { addPayslip } = usePayslips();
-
   const now = new Date();
-  const logoInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
+  const currencySymbol = getCurrencySymbol(COMPANY.currency);
 
-  const [companyId, setCompanyId] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-
-  const [companyName, setCompanyName] = useState("Skillion");
-  const [companyAddress, setCompanyAddress] = useState("E North St, 18018");
-  const [companyCity, setCompanyCity] = useState("Bethlehem");
-  const [companyPincode, setCompanyPincode] = useState("");
-  const [companyLogo, setCompanyLogo] = useState(SKILLION_LOGO);
-  const [currency, setCurrency] = useState("USD");
-
-  const [employeeName, setEmployeeName] = useState("Lakshay Choudhary");
+  // Employee
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [employeeName, setEmployeeName] = useState("");
   const [empId, setEmpId] = useState("");
-  const [designation, setDesignation] = useState("Web Developer");
-  const [uan, setUan] = useState("");
-  const [pan, setPan] = useState("");
-  const [bankAccount, setBankAccount] = useState("");
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [designation, setDesignation] = useState("");
 
+  // Pay period
   const [payMonth, setPayMonth] = useState(now.getMonth() + 1);
   const [payYear, setPayYear] = useState(now.getFullYear());
   const [paymentDate, setPaymentDate] = useState("");
   const [paidDays, setPaidDays] = useState(30);
   const [lopDays, setLopDays] = useState(0);
-  const [signedBy, setSignedBy] = useState("");
+
+  // Signature
   const [signatureImage, setSignatureImage] = useState("");
-  const signatureInputRef = useRef<HTMLInputElement>(null);
 
-  const [earnings, setEarnings] = useState<PayComponent[]>([
-    { name: "", amount: 0 },
-  ]);
-  const [deductions, setDeductions] = useState<PayComponent[]>([]);
-
-  const [fieldVisibility, setFieldVisibility] =
-    useState<FieldVisibilitySettings>({ ...DEFAULT_FIELD_VISIBILITY });
+  // Pay components
+  const [earnings, setEarnings] = useState<PayComponent[]>(
+    DEFAULT_EARNINGS.map((e) => ({ ...e })),
+  );
+  const [deductions, setDeductions] = useState<PayComponent[]>(
+    DEFAULT_DEDUCTIONS.map((d) => ({ ...d })),
+  );
 
   const [downloading, setDownloading] = useState(false);
 
-  const companyEmployees = useMemo(
-    () => (companyId ? getByCompany(companyId) : []),
-    [companyId, getByCompany],
-  );
-
-  const currencySymbol = getCurrencySymbol(currency);
+  const years = useMemo(() => {
+    const result: number[] = [];
+    for (let y = 2020; y <= 2030; y++) result.push(y);
+    return result;
+  }, []);
 
   const grossEarnings = useMemo(
     () =>
@@ -128,85 +86,19 @@ export function PayslipEditor() {
   const netPayable = grossEarnings - totalDeductions;
   const words = useMemo(() => amountToWords(netPayable), [netPayable]);
 
-  const years = useMemo(() => {
-    const result: number[] = [];
-    for (let y = 2020; y <= 2030; y++) result.push(y);
-    return result;
-  }, []);
-
-  const formatAmountNoSpace = (amount: number) =>
+  const fmt = (amount: number) =>
     `${currencySymbol}${amount.toLocaleString("en-IN")}`;
 
   // --- Handlers ---
 
-  const handleCompanyChange = useCallback(
-    (id: string) => {
-      setCompanyId(id);
-      setEmployeeId("");
-      const company = getCompanyById(id);
-      if (!company) return;
-      setCompanyName(company.name);
-      setCompanyAddress(company.address);
-      setCompanyCity(company.city);
-      setCompanyPincode(company.pincode);
-      setCompanyLogo(company.logo);
-      setCurrency(company.currency);
-      setFieldVisibility({ ...company.fieldVisibility });
-      if (company.earningsTemplate.length > 0) {
-        setEarnings(company.earningsTemplate.map((e) => ({ ...e })));
-      } else {
-        setEarnings([{ name: "", amount: 0 }]);
-      }
-      if (company.deductionsTemplate.length > 0) {
-        setDeductions(company.deductionsTemplate.map((d) => ({ ...d })));
-      } else {
-        setDeductions([]);
-      }
-    },
-    [getCompanyById],
-  );
-
-  const handleEmployeeChange = useCallback(
-    (id: string) => {
-      setEmployeeId(id);
-      const employee = companyEmployees.find((e) => e.id === id);
-      if (!employee) return;
-      setEmployeeName(employee.name);
-      setEmpId(employee.employeeId);
-      setDesignation(employee.designation);
-      setUan(employee.uan);
-      setPan(employee.pan);
-      setBankAccount(employee.bankAccountNumber);
-      setCustomFields(employee.customFields?.map((f) => ({ ...f })) ?? []);
-    },
-    [companyEmployees],
-  );
-
-  const handleLogoUpload = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const img = new Image();
-      img.onload = () => {
-        const maxSize = LIMITS.LOGO_MAX_SIZE;
-        let { width, height } = img;
-        if (width > maxSize || height > maxSize) {
-          const scale = maxSize / Math.max(width, height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, width, height);
-        setCompanyLogo(canvas.toDataURL("image/png"));
-      };
-      img.src = URL.createObjectURL(file);
-      e.target.value = "";
-    },
-    [],
-  );
+  const handleEmployeeChange = useCallback((id: string) => {
+    setSelectedEmployeeId(id);
+    const emp = EMPLOYEES.find((e) => e.id === id);
+    if (!emp) return;
+    setEmployeeName(emp.name);
+    setEmpId(emp.employeeId);
+    setDesignation(emp.designation);
+  }, []);
 
   const handleSignatureUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,14 +131,12 @@ export function PayslipEditor() {
   );
 
   const addEarning = useCallback(() => {
-    if (earnings.length >= LIMITS.MAX_PAY_COMPONENTS) return;
     setEarnings((prev) => [...prev, { name: "", amount: 0 }]);
-  }, [earnings.length]);
+  }, []);
 
   const addDeduction = useCallback(() => {
-    if (deductions.length >= LIMITS.MAX_PAY_COMPONENTS) return;
     setDeductions((prev) => [...prev, { name: "", amount: 0 }]);
-  }, [deductions.length]);
+  }, []);
 
   const removeEarning = useCallback(
     (index: number) => {
@@ -260,75 +150,85 @@ export function PayslipEditor() {
     setDeductions((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const toggleVisibility = useCallback(
-    (field: keyof FieldVisibilitySettings) => {
-      setFieldVisibility((prev) => ({ ...prev, [field]: !prev[field] }));
-    },
-    [],
-  );
-
   const buildProps = useCallback((): PayslipDocumentProps => {
-    const company: Company = {
-      id: companyId,
-      name: companyName,
-      address: companyAddress,
-      city: companyCity,
-      pincode: companyPincode,
-      logo: companyLogo,
-      currency,
-      fieldVisibility,
-      earningsTemplate: [],
-      deductionsTemplate: [],
-      createdAt: "",
-      updatedAt: "",
-    };
-    const employee: Employee = {
-      id: employeeId,
-      companyId,
-      name: employeeName,
-      employeeId: empId,
-      designation,
-      uan,
-      pan,
-      bankAccountNumber: bankAccount,
-      customFields,
-      createdAt: "",
-      updatedAt: "",
-    };
     return {
-      company,
-      employee,
+      company: {
+        id: "skillion",
+        name: COMPANY.name,
+        address: COMPANY.address,
+        city: COMPANY.city,
+        pincode: "",
+        logo: COMPANY.logo,
+        currency: COMPANY.currency,
+        fieldVisibility: {
+          companyAddress: true,
+          companyCity: true,
+          companyPincode: false,
+          companyLogo: true,
+          employeeId: true,
+          uan: false,
+          pan: false,
+          bankAccountNumber: false,
+          designation: true,
+          paidDays: true,
+          lopDays: true,
+          paymentDate: true,
+          payPeriod: true,
+          customFields: false,
+        },
+        earningsTemplate: [],
+        deductionsTemplate: [],
+        createdAt: "",
+        updatedAt: "",
+      },
+      employee: {
+        id: selectedEmployeeId,
+        companyId: "skillion",
+        name: employeeName,
+        employeeId: empId,
+        designation,
+        uan: "",
+        pan: "",
+        bankAccountNumber: "",
+        customFields: [],
+        createdAt: "",
+        updatedAt: "",
+      },
       payPeriod: { month: payMonth, year: payYear },
       paidDays,
       lopDays,
       paymentDate,
       earnings: earnings.filter((e) => e.name && e.amount >= 0),
       deductions: deductions.filter((d) => d.name && d.amount >= 0),
-      customFields,
+      customFields: [],
       grossEarnings,
       totalDeductions,
       netPayable,
       amountInWords: words,
-      fieldVisibility,
-      signedBy: signedBy || undefined,
+      fieldVisibility: {
+        companyAddress: true,
+        companyCity: true,
+        companyPincode: false,
+        companyLogo: true,
+        employeeId: true,
+        uan: false,
+        pan: false,
+        bankAccountNumber: false,
+        designation: true,
+        paidDays: true,
+        lopDays: true,
+        paymentDate: true,
+        payPeriod: true,
+        customFields: false,
+      },
+      signedBy: CEO_NAME,
       signatureImage: signatureImage || undefined,
     };
   }, [
-    companyId,
-    companyName,
-    companyAddress,
-    companyCity,
-    companyPincode,
-    companyLogo,
-    currency,
-    employeeId,
+    selectedEmployeeId,
     employeeName,
     empId,
     designation,
-    uan,
-    pan,
-    bankAccount,
-    customFields,
     earnings,
     deductions,
     payMonth,
@@ -340,8 +240,6 @@ export function PayslipEditor() {
     totalDeductions,
     netPayable,
     words,
-    fieldVisibility,
-    signedBy,
     signatureImage,
   ]);
 
@@ -349,76 +247,36 @@ export function PayslipEditor() {
     setDownloading(true);
     try {
       const props = buildProps();
-
-      addPayslip({
-        companyId: props.company.id,
-        employeeId: props.employee.id,
-        payPeriod: props.payPeriod,
-        paidDays: props.paidDays,
-        lopDays: props.lopDays,
-        paymentDate: props.paymentDate,
-        earnings: props.earnings,
-        deductions: props.deductions,
-        customFields: props.customFields,
-        grossEarnings: props.grossEarnings,
-        totalDeductions: props.totalDeductions,
-        netPayable: props.netPayable,
-        amountInWords: props.amountInWords,
-        fieldVisibility: props.fieldVisibility,
-      });
-
       const blob = await pdf(<PayslipDocument {...props} />).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       const month = MONTHS[payMonth - 1];
       link.href = url;
-      link.download = `${companyName || "Company"}_${employeeName || "Employee"}_${month}_${payYear}.pdf`;
+      link.download = `${COMPANY.name}_${employeeName || "Employee"}_${month}_${payYear}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast.success("Payslip downloaded and saved to history");
+      toast.success("Payslip downloaded");
     } catch {
       toast.error("Failed to generate PDF");
     } finally {
       setDownloading(false);
     }
-  }, [buildProps, addPayslip, payMonth, payYear, companyName, employeeName]);
+  }, [buildProps, payMonth, payYear, employeeName]);
 
   return (
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="mx-auto flex max-w-[210mm] flex-wrap items-center gap-3 rounded-lg border bg-card p-3">
-        <Select value={companyId} onValueChange={handleCompanyChange}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select company" />
+        <Select value={selectedEmployeeId} onValueChange={handleEmployeeChange}>
+          <SelectTrigger className="w-52">
+            <SelectValue placeholder="Select employee" />
           </SelectTrigger>
           <SelectContent>
-            {companies.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={employeeId}
-          onValueChange={handleEmployeeChange}
-          disabled={!companyId}
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue
-              placeholder={
-                companyId ? "Select employee" : "Select company first"
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {companyEmployees.map((e) => (
+            {EMPLOYEES.map((e) => (
               <SelectItem key={e.id} value={e.id}>
                 {e.name}
-                {e.employeeId && ` (${e.employeeId})`}
               </SelectItem>
             ))}
           </SelectContent>
@@ -458,40 +316,10 @@ export function PayslipEditor() {
 
         <div className="flex-1" />
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Settings className="size-4" />
-              Visibility
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72" align="end">
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Field Visibility</p>
-              {(
-                Object.keys(FIELD_LABELS) as Array<
-                  keyof FieldVisibilitySettings
-                >
-              ).map((field) => (
-                <div key={field} className="flex items-center gap-2">
-                  <Switch
-                    id={`vis-${field}`}
-                    checked={fieldVisibility[field]}
-                    onCheckedChange={() => toggleVisibility(field)}
-                  />
-                  <Label
-                    htmlFor={`vis-${field}`}
-                    className="cursor-pointer text-sm font-normal"
-                  >
-                    {FIELD_LABELS[field]}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <Button onClick={handleDownload} disabled={downloading}>
+        <Button
+          onClick={handleDownload}
+          disabled={downloading || !employeeName}
+        >
           <Download className="size-4" />
           {downloading ? "Generating..." : "Download PDF"}
         </Button>
@@ -500,195 +328,91 @@ export function PayslipEditor() {
       {/* A4 Page */}
       <div className="mx-auto max-w-[210mm] bg-white shadow-lg">
         <div className="flex min-h-[297mm] flex-col px-[40px] py-[40px] text-[#333]">
-          {/* Header: Logo + Name left, Pay Period right */}
+          {/* Header */}
           <div className="mb-4 flex items-start justify-between">
             <div className="flex items-center gap-3">
-              {fieldVisibility.companyLogo && (
-                <div className="shrink-0">
-                  <input
-                    ref={logoInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleLogoUpload}
-                  />
-                  {companyLogo ? (
-                    <div className="group relative">
-                      <img
-                        src={companyLogo}
-                        alt="Logo"
-                        className="max-h-10 max-w-14 cursor-pointer object-contain"
-                        onClick={() => logoInputRef.current?.click()}
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon-xs"
-                        className="absolute -right-1 -top-1 hidden group-hover:inline-flex"
-                        onClick={() => setCompanyLogo("")}
-                      >
-                        <X />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="h-10 w-14 border-dashed text-muted-foreground"
-                      onClick={() => logoInputRef.current?.click()}
-                    >
-                      <ImageIcon className="size-4" />
-                    </Button>
-                  )}
-                </div>
-              )}
+              <img
+                src={COMPANY.logo}
+                alt="Logo"
+                className="max-h-10 max-w-14 object-contain"
+              />
               <div>
-                <InlineInput
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Company Name"
-                  className="text-lg font-bold"
-                  label="Company name"
-                />
-                {(fieldVisibility.companyAddress ||
-                  fieldVisibility.companyCity ||
-                  fieldVisibility.companyPincode) && (
-                  <div className="flex items-center gap-1">
-                    {fieldVisibility.companyAddress && (
-                      <InlineInput
-                        value={companyAddress}
-                        onChange={(e) => setCompanyAddress(e.target.value)}
-                        placeholder="Address"
-                        className="w-40 text-xs text-muted-foreground"
-                        label="Company address"
-                      />
-                    )}
-                    {fieldVisibility.companyCity && (
-                      <InlineInput
-                        value={companyCity}
-                        onChange={(e) => setCompanyCity(e.target.value)}
-                        placeholder="City"
-                        className="w-28 text-xs text-muted-foreground"
-                        label="City"
-                      />
-                    )}
-                    {fieldVisibility.companyPincode && (
-                      <InlineInput
-                        value={companyPincode}
-                        onChange={(e) => setCompanyPincode(e.target.value)}
-                        placeholder="Pincode"
-                        className="w-20 text-xs text-muted-foreground"
-                        label="Pincode"
-                      />
-                    )}
-                  </div>
-                )}
+                <p className="text-lg font-bold">{COMPANY.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {COMPANY.address} {COMPANY.city}
+                </p>
               </div>
             </div>
-            {fieldVisibility.payPeriod && (
-              <div className="text-right">
-                <p className="text-xs italic text-muted-foreground">
-                  Payslip For the Month
-                </p>
-                <p className="text-sm font-bold">
-                  {MONTHS[payMonth - 1]} {payYear}
-                </p>
-              </div>
-            )}
+            <div className="text-right">
+              <p className="text-xs italic text-muted-foreground">
+                Payslip For the Month
+              </p>
+              <p className="text-sm font-bold">
+                {MONTHS[payMonth - 1]} {payYear}
+              </p>
+            </div>
           </div>
 
-          {/* Separator */}
           <div className="mb-5 border-b border-[#d0d0d0]" />
 
-          {/* Employee Summary heading */}
+          {/* Employee Summary */}
           <h3 className="mb-3 text-[10px] font-bold uppercase tracking-wide">
             Employee Summary
           </h3>
 
-          {/* Employee Details — 2-col grid */}
           <div className="mb-7 grid grid-cols-2 gap-x-6 gap-y-2">
             <InfoRow label="Employee Name">
+              <span className="text-sm font-semibold">
+                {employeeName || "—"}
+              </span>
+            </InfoRow>
+            <InfoRow label="Employee ID">
+              <span className="text-sm font-semibold">{empId || "—"}</span>
+            </InfoRow>
+            <InfoRow label="Designation">
+              <span className="text-sm font-semibold">
+                {designation || "—"}
+              </span>
+            </InfoRow>
+            <InfoRow label="Pay Period">
+              <span className="text-sm font-semibold">
+                {MONTHS[payMonth - 1]} {payYear}
+              </span>
+            </InfoRow>
+            <InfoRow label="Pay Date">
               <InlineInput
-                value={employeeName}
-                onChange={(e) => setEmployeeName(e.target.value)}
-                placeholder="Name"
-                className="flex-1 text-sm font-semibold"
-                label="Employee name"
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                className="text-sm font-semibold"
+                label="Payment date"
               />
             </InfoRow>
-            {fieldVisibility.employeeId && (
-              <InfoRow label="Employee ID">
-                <InlineInput
-                  value={empId}
-                  onChange={(e) => setEmpId(e.target.value)}
-                  placeholder="ID"
-                  className="flex-1 text-sm font-semibold"
-                  label="Employee ID"
-                />
-              </InfoRow>
-            )}
-            {fieldVisibility.designation && (
-              <InfoRow label="Designation">
-                <InlineInput
-                  value={designation}
-                  onChange={(e) => setDesignation(e.target.value)}
-                  placeholder="Designation"
-                  className="flex-1 text-sm font-semibold"
-                  label="Designation"
-                />
-              </InfoRow>
-            )}
-            {fieldVisibility.payPeriod && (
-              <InfoRow label="Pay Period">
-                <span className="text-sm font-semibold">
-                  {MONTHS[payMonth - 1]} {payYear}
-                </span>
-              </InfoRow>
-            )}
-            {fieldVisibility.paymentDate && (
-              <InfoRow label="Pay Date">
-                <InlineInput
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  className="text-sm font-semibold"
-                  label="Payment date"
-                />
-              </InfoRow>
-            )}
-            {fieldVisibility.paidDays && (
-              <InfoRow label="Paid Days">
-                <InlineInput
-                  type="number"
-                  value={paidDays}
-                  onChange={(e) => setPaidDays(Number(e.target.value))}
-                  min={0}
-                  max={31}
-                  className="w-16 text-sm font-semibold"
-                  label="Paid days"
-                />
-              </InfoRow>
-            )}
-            {fieldVisibility.lopDays && (
-              <InfoRow label="LOP Days">
-                <InlineInput
-                  type="number"
-                  value={lopDays}
-                  onChange={(e) => setLopDays(Number(e.target.value))}
-                  min={0}
-                  max={31}
-                  className="w-16 text-sm font-semibold"
-                  label="LOP days"
-                />
-              </InfoRow>
-            )}
-            {fieldVisibility.customFields &&
-              customFields.map((field, i) => (
-                <InfoRow key={i} label={field.key}>
-                  <span className="text-sm font-semibold">{field.value}</span>
-                </InfoRow>
-              ))}
+            <InfoRow label="Paid Days">
+              <InlineInput
+                type="number"
+                value={paidDays}
+                onChange={(e) => setPaidDays(Number(e.target.value))}
+                min={0}
+                max={31}
+                className="w-16 text-sm font-semibold"
+                label="Paid days"
+              />
+            </InfoRow>
+            <InfoRow label="LOP Days">
+              <InlineInput
+                type="number"
+                value={lopDays}
+                onChange={(e) => setLopDays(Number(e.target.value))}
+                min={0}
+                max={31}
+                className="w-16 text-sm font-semibold"
+                label="LOP days"
+              />
+            </InfoRow>
           </div>
 
-          {/* Side-by-side Earnings & Deductions — bordered */}
+          {/* Earnings & Deductions */}
           <div className="mb-5 overflow-hidden rounded border border-[#d0d0d0]">
             <div className="flex">
               {/* Earnings */}
@@ -754,12 +478,11 @@ export function PayslipEditor() {
                 <div className="flex justify-between bg-[#f8f8f8] px-3 py-2">
                   <span className="text-sm font-bold">Gross Earnings</span>
                   <span className="text-sm font-bold">
-                    {formatAmountNoSpace(grossEarnings)}
+                    {fmt(grossEarnings)}
                   </span>
                 </div>
               </div>
 
-              {/* Divider */}
               <div className="w-px bg-[#d0d0d0]" />
 
               {/* Deductions */}
@@ -823,14 +546,14 @@ export function PayslipEditor() {
                 <div className="flex justify-between bg-[#f8f8f8] px-3 py-2">
                   <span className="text-sm font-bold">Total Deductions</span>
                   <span className="text-sm font-bold">
-                    {formatAmountNoSpace(totalDeductions)}
+                    {fmt(totalDeductions)}
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Total Net Payable box */}
+          {/* Total Net Payable */}
           <div className="mb-4 flex items-center justify-between rounded border border-[#d0d0d0] px-4 py-3">
             <div>
               <p className="text-sm font-bold uppercase">Total Net Payable</p>
@@ -838,9 +561,7 @@ export function PayslipEditor() {
                 Gross Earnings - Total Deductions
               </p>
             </div>
-            <p className="text-base font-bold">
-              {formatAmountNoSpace(netPayable)}
-            </p>
+            <p className="text-base font-bold">{fmt(netPayable)}</p>
           </div>
 
           {/* Amount in words */}
@@ -851,7 +572,7 @@ export function PayslipEditor() {
             <span className="text-xs font-semibold">{words}</span>
           </div>
 
-          {/* Spacer + Signature anchored at bottom */}
+          {/* Spacer */}
           <div className="mt-auto" />
 
           {/* Signatory */}
@@ -892,13 +613,7 @@ export function PayslipEditor() {
                 </Button>
               )}
               <div className="border-t border-[#333] pt-2">
-                <InlineInput
-                  value={signedBy}
-                  onChange={(e) => setSignedBy(e.target.value)}
-                  placeholder="Name"
-                  className="w-full text-center text-xs font-bold"
-                  label="Signatory name"
-                />
+                <p className="text-xs font-bold">{CEO_NAME}</p>
                 <p className="text-xs text-muted-foreground">CEO Skillion</p>
               </div>
             </div>
