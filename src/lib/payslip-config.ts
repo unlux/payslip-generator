@@ -19,9 +19,16 @@ export const EMPLOYEES = [
   {
     id: "1",
     name: "Lakshay Choudhary",
-    employeeId: "EMP001",
+    employeeId: "011025",
     designation: "Web Developer",
   },
+  {
+    id: "2",
+    name: "Manya Sharma",
+    employeeId: "tbd",
+    designation: "Marketing Manager",
+  },
+
 ] as const;
 
 // ─── Default Earnings ───────────────────────────────────

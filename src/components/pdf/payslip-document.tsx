@@ -115,12 +115,9 @@ export function PayslipDocument({
         )}
 
         <View style={styles.footer} fixed>
-          <Text
-            style={styles.footerText}
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} / ${totalPages}`
-            }
-          />
+          <Text style={styles.footerText}>
+            -- This is a system-generated document. --
+          </Text>
         </View>
       </Page>
     </Document>

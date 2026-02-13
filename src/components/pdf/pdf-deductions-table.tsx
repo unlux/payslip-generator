@@ -31,6 +31,7 @@ export function PdfDeductionsTable({
           </Text>
         </View>
       ))}
+      <View style={{ flex: 1 }} />
       <View style={styles.tableFooter}>
         <Text style={styles.tableFooterLabel}>Total Deductions</Text>
         <Text style={styles.tableFooterAmount}>

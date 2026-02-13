@@ -416,14 +416,15 @@ export function PayslipEditor() {
           <div className="mb-5 overflow-hidden rounded border border-[#d0d0d0]">
             <div className="flex">
               {/* Earnings */}
-              <div className="flex-1">
-                <div className="flex justify-between bg-[#f8f8f8] px-3 py-2">
-                  <span className="text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
+              <div className="flex flex-1 flex-col">
+                <div className="flex items-center gap-1 bg-[#f8f8f8] px-3 py-2">
+                  <span className="min-w-0 flex-1 text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
                     Earnings
                   </span>
-                  <span className="text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <span className="w-24 text-right text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
                     Amount
                   </span>
+                  <span className="w-6 shrink-0" />
                 </div>
                 {earnings.map((item, index) => (
                   <div
@@ -453,16 +454,14 @@ export function PayslipEditor() {
                       className="w-24 text-right text-sm"
                       label={`Earning ${index + 1} amount`}
                     />
-                    {earnings.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        className="shrink-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeEarning(index)}
-                      >
-                        <Trash2 />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className={`shrink-0 text-muted-foreground hover:text-destructive ${earnings.length <= 1 ? "invisible" : ""}`}
+                      onClick={() => removeEarning(index)}
+                    >
+                      <Trash2 />
+                    </Button>
                   </div>
                 ))}
                 <div className="px-3 py-1">
@@ -475,25 +474,29 @@ export function PayslipEditor() {
                     <Plus className="size-3" /> Add
                   </Button>
                 </div>
-                <div className="flex justify-between bg-[#f8f8f8] px-3 py-2">
-                  <span className="text-sm font-bold">Gross Earnings</span>
-                  <span className="text-sm font-bold">
+                <div className="mt-auto flex items-center gap-1 bg-[#f8f8f8] px-3 py-2">
+                  <span className="min-w-0 flex-1 text-sm font-bold">
+                    Gross Earnings
+                  </span>
+                  <span className="w-24 text-right text-sm font-bold">
                     {fmt(grossEarnings)}
                   </span>
+                  <span className="w-6 shrink-0" />
                 </div>
               </div>
 
               <div className="w-px bg-[#d0d0d0]" />
 
               {/* Deductions */}
-              <div className="flex-1">
-                <div className="flex justify-between bg-[#f8f8f8] px-3 py-2">
-                  <span className="text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
+              <div className="flex flex-1 flex-col">
+                <div className="flex items-center gap-1 bg-[#f8f8f8] px-3 py-2">
+                  <span className="min-w-0 flex-1 text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
                     Deductions
                   </span>
-                  <span className="text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <span className="w-24 text-right text-[8px] font-bold uppercase tracking-wide text-muted-foreground">
                     Amount
                   </span>
+                  <span className="w-6 shrink-0" />
                 </div>
                 {deductions.map((item, index) => (
                   <div
@@ -543,11 +546,14 @@ export function PayslipEditor() {
                     <Plus className="size-3" /> Add
                   </Button>
                 </div>
-                <div className="flex justify-between bg-[#f8f8f8] px-3 py-2">
-                  <span className="text-sm font-bold">Total Deductions</span>
-                  <span className="text-sm font-bold">
+                <div className="mt-auto flex items-center gap-1 bg-[#f8f8f8] px-3 py-2">
+                  <span className="min-w-0 flex-1 text-sm font-bold">
+                    Total Deductions
+                  </span>
+                  <span className="w-24 text-right text-sm font-bold">
                     {fmt(totalDeductions)}
                   </span>
+                  <span className="w-6 shrink-0" />
                 </div>
               </div>
             </div>
@@ -620,7 +626,7 @@ export function PayslipEditor() {
           </div>
 
           <div className="border-t border-[#d0d0d0] pt-2 text-center text-[8px] text-muted-foreground">
-            Page 1 / 1
+            -- This is a system-generated document. --
           </div>
         </div>
       </div>

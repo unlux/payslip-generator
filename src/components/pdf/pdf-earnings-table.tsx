@@ -31,6 +31,7 @@ export function PdfEarningsTable({
           </Text>
         </View>
       ))}
+      <View style={{ flex: 1 }} />
       <View style={styles.tableFooter}>
         <Text style={styles.tableFooterLabel}>Gross Earnings</Text>
         <Text style={styles.tableFooterAmount}>
