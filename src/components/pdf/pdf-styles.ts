@@ -1,85 +1,79 @@
 import { StyleSheet } from "@react-pdf/renderer";
 
 const colors = {
-  purple: "#9531a0",
-  blueBg: "#e8f4fd",
   primary: "#333333",
   secondary: "#666666",
-  lightBg: "#f5f5f5",
-  white: "#ffffff",
-  border: "#dddddd",
+  border: "#d0d0d0",
+  lightBg: "#f8f8f8",
 };
 
 export const styles = StyleSheet.create({
   page: {
-    padding: 30,
-    fontSize: 9,
+    padding: 40,
+    fontSize: 10,
     fontFamily: "Helvetica",
     color: colors.primary,
   },
 
-  // Header
+  // Header — logo+name left, pay period right
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    alignItems: "flex-start",
+    marginBottom: 16,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    flex: 1,
   },
   logo: {
-    width: 50,
-    height: 50,
+    maxWidth: 50,
+    maxHeight: 40,
     objectFit: "contain",
   },
   companyName: {
-    fontSize: 14,
+    fontSize: 18,
     fontFamily: "Helvetica-Bold",
-    color: colors.purple,
-    marginBottom: 2,
   },
   companyDetail: {
-    fontSize: 8,
+    fontSize: 9,
     color: colors.secondary,
+    marginTop: 1,
   },
   headerRight: {
     alignItems: "flex-end",
-    justifyContent: "center",
   },
-  payslipLabel: {
-    fontSize: 8,
+  payPeriodLabel: {
+    fontSize: 9,
     color: colors.secondary,
-    marginBottom: 2,
+    fontStyle: "italic",
   },
-  payslipPeriod: {
-    fontSize: 12,
+  payPeriodValue: {
+    fontSize: 14,
     fontFamily: "Helvetica-Bold",
-    color: colors.purple,
-    marginBottom: 2,
-  },
-  paymentDate: {
-    fontSize: 8,
-    color: colors.secondary,
+    marginTop: 2,
   },
 
-  // Employee Details
-  employeeSection: {
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: colors.lightBg,
-    borderRadius: 4,
+  // Separator
+  separator: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: 20,
   },
-  employeeSectionTitle: {
+
+  // Section heading
+  sectionHeading: {
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
-    color: colors.purple,
-    marginBottom: 8,
+    textTransform: "uppercase",
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+
+  // Employee details grid
+  employeeSection: {
+    marginBottom: 28,
   },
   employeeGrid: {
     flexDirection: "row",
@@ -88,24 +82,34 @@ export const styles = StyleSheet.create({
   employeeField: {
     width: "50%",
     flexDirection: "row",
-    marginBottom: 5,
+    marginBottom: 8,
   },
-  employeeFieldLabel: {
-    fontSize: 8,
+  employeeLabel: {
+    fontSize: 9,
     color: colors.secondary,
     width: 100,
   },
-  employeeFieldValue: {
-    fontSize: 8,
+  employeeColon: {
+    fontSize: 9,
+    color: colors.secondary,
+    width: 12,
+    textAlign: "center",
+  },
+  employeeValue: {
+    fontSize: 10,
     fontFamily: "Helvetica-Bold",
     flex: 1,
   },
 
-  // Tables
+  // Bordered table container
+  tablesBorder: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 2,
+    marginBottom: 20,
+  },
   tablesRow: {
     flexDirection: "row",
-    gap: 10,
-    marginBottom: 15,
   },
   tableContainer: {
     flex: 1,
@@ -113,84 +117,148 @@ export const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: colors.purple,
-    padding: 6,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.lightBg,
   },
   tableHeaderText: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
-    color: colors.white,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    color: colors.secondary,
   },
   tableRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 5,
-    paddingHorizontal: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: colors.border,
   },
-  tableRowAlt: {
-    backgroundColor: colors.lightBg,
-  },
   tableCellName: {
-    fontSize: 8,
-    color: colors.primary,
+    fontSize: 10,
     flex: 1,
   },
   tableCellAmount: {
-    fontSize: 8,
-    color: colors.primary,
+    fontSize: 10,
     textAlign: "right",
-    minWidth: 70,
+    minWidth: 80,
   },
   tableFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     backgroundColor: colors.lightBg,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
   tableFooterLabel: {
-    fontSize: 8,
+    fontSize: 10,
     fontFamily: "Helvetica-Bold",
-    color: colors.primary,
   },
   tableFooterAmount: {
-    fontSize: 8,
+    fontSize: 10,
     fontFamily: "Helvetica-Bold",
-    color: colors.primary,
     textAlign: "right",
-    minWidth: 70,
+    minWidth: 80,
+  },
+  tableDivider: {
+    width: 1,
+    backgroundColor: colors.border,
   },
 
-  // Summary
-  summaryBox: {
-    backgroundColor: colors.blueBg,
-    borderRadius: 4,
-    padding: 12,
-    alignItems: "center",
+  // Net payable box
+  netPayableBox: {
     borderWidth: 1,
-    borderColor: colors.purple,
+    borderColor: colors.border,
+    borderRadius: 2,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   netPayableLabel: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    textTransform: "uppercase",
+  },
+  netPayableSubtext: {
     fontSize: 8,
     color: colors.secondary,
-    marginBottom: 4,
+    marginTop: 2,
   },
   netPayableAmount: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "Helvetica-Bold",
-    color: colors.purple,
-    marginBottom: 6,
   },
-  amountInWords: {
+
+  // Amount in words
+  amountWordsContainer: {
+    borderTopWidth: 0.5,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+    marginBottom: 20,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  amountWordsLabel: {
+    fontSize: 9,
+    color: colors.secondary,
+  },
+  amountWordsValue: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+  },
+
+  // Signatory
+  signatoryContainer: {
+    marginBottom: 24,
+    alignItems: "flex-end",
+  },
+  signatoryBlock: {
+    width: 200,
+    alignItems: "center",
+  },
+  signatoryImage: {
+    maxWidth: 120,
+    maxHeight: 50,
+    objectFit: "contain",
+    marginBottom: 4,
+  },
+  signatoryLine: {
+    borderTopWidth: 0.5,
+    borderTopColor: colors.primary,
+    width: 200,
+    paddingTop: 6,
+  },
+  signatoryText: {
+    fontSize: 9,
+    textAlign: "center",
+  },
+  signatoryName: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    textAlign: "center",
+    marginBottom: 2,
+  },
+
+  // Footer
+  footer: {
+    position: "absolute",
+    bottom: 30,
+    left: 40,
+    right: 40,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.border,
+    paddingTop: 8,
+  },
+  footerText: {
     fontSize: 8,
     color: colors.secondary,
-    fontStyle: "italic",
+    textAlign: "center",
   },
 });

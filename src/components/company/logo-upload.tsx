@@ -20,13 +20,19 @@ export function LogoUpload({ value, onChange }: LogoUploadProps) {
 
     const img = new Image();
     img.onload = () => {
+      const maxSize = LIMITS.LOGO_MAX_SIZE;
+      let { width, height } = img;
+      if (width > maxSize || height > maxSize) {
+        const scale = maxSize / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
       const canvas = document.createElement("canvas");
-      canvas.width = LIMITS.LOGO_MAX_SIZE;
-      canvas.height = LIMITS.LOGO_MAX_SIZE;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, LIMITS.LOGO_MAX_SIZE, LIMITS.LOGO_MAX_SIZE);
-      const base64 = canvas.toDataURL("image/jpeg", LIMITS.LOGO_QUALITY);
-      onChange(base64);
+      ctx.drawImage(img, 0, 0, width, height);
+      onChange(canvas.toDataURL("image/png"));
     };
     img.src = URL.createObjectURL(file);
 

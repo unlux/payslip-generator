@@ -8,8 +8,8 @@ interface PdfEarningsTableProps {
   currencySymbol: string;
 }
 
-function formatAmount(amount: number): string {
-  return amount.toLocaleString("en-IN");
+function formatAmount(amount: number, symbol: string): string {
+  return `${symbol}${amount.toLocaleString("en-IN")}`;
 }
 
 export function PdfEarningsTable({
@@ -20,24 +20,21 @@ export function PdfEarningsTable({
   return (
     <View style={styles.tableContainer}>
       <View style={styles.tableHeader}>
-        <Text style={styles.tableHeaderText}>EARNINGS</Text>
-        <Text style={styles.tableHeaderText}>AMOUNT ({currencySymbol})</Text>
+        <Text style={styles.tableHeaderText}>Earnings</Text>
+        <Text style={styles.tableHeaderText}>Amount</Text>
       </View>
-      {earnings.map((item, index) => (
-        <View
-          key={item.name}
-          style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
-        >
+      {earnings.map((item) => (
+        <View key={item.name} style={styles.tableRow}>
           <Text style={styles.tableCellName}>{item.name}</Text>
           <Text style={styles.tableCellAmount}>
-            {formatAmount(item.amount)}
+            {formatAmount(item.amount, currencySymbol)}
           </Text>
         </View>
       ))}
       <View style={styles.tableFooter}>
         <Text style={styles.tableFooterLabel}>Gross Earnings</Text>
         <Text style={styles.tableFooterAmount}>
-          {currencySymbol} {formatAmount(grossEarnings)}
+          {formatAmount(grossEarnings, currencySymbol)}
         </Text>
       </View>
     </View>

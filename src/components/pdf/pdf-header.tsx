@@ -7,52 +7,46 @@ import type { Company, PayPeriod, FieldVisibilitySettings } from "@/types";
 interface PdfHeaderProps {
   company: Company;
   payPeriod: PayPeriod;
-  paymentDate: string;
   fieldVisibility: FieldVisibilitySettings;
 }
 
 export function PdfHeader({
   company,
   payPeriod,
-  paymentDate,
   fieldVisibility,
 }: PdfHeaderProps) {
+  const addressParts = [
+    fieldVisibility.companyAddress ? company.address : "",
+    fieldVisibility.companyCity ? company.city : "",
+    fieldVisibility.companyPincode ? company.pincode : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <View style={styles.header}>
-      <View style={styles.headerLeft}>
-        {fieldVisibility.companyLogo && company.logo && (
-          <Image style={styles.logo} src={company.logo} />
-        )}
-        <View>
-          <Text style={styles.companyName}>{company.name}</Text>
-          {fieldVisibility.companyAddress && company.address && (
-            <Text style={styles.companyDetail}>{company.address}</Text>
+    <>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          {fieldVisibility.companyLogo && company.logo && (
+            <Image style={styles.logo} src={company.logo} />
           )}
-          {(fieldVisibility.companyCity || fieldVisibility.companyPincode) && (
-            <Text style={styles.companyDetail}>
-              {[
-                fieldVisibility.companyCity ? company.city : "",
-                fieldVisibility.companyPincode ? company.pincode : "",
-              ]
-                .filter(Boolean)
-                .join(" - ")}
-            </Text>
-          )}
+          <View>
+            <Text style={styles.companyName}>{company.name}</Text>
+            {addressParts && (
+              <Text style={styles.companyDetail}>{addressParts}</Text>
+            )}
+          </View>
         </View>
-      </View>
-      <View style={styles.headerRight}>
         {fieldVisibility.payPeriod && (
-          <>
-            <Text style={styles.payslipLabel}>Payslip For</Text>
-            <Text style={styles.payslipPeriod}>
+          <View style={styles.headerRight}>
+            <Text style={styles.payPeriodLabel}>Payslip For the Month</Text>
+            <Text style={styles.payPeriodValue}>
               {MONTHS[payPeriod.month - 1]} {payPeriod.year}
             </Text>
-          </>
-        )}
-        {fieldVisibility.paymentDate && paymentDate && (
-          <Text style={styles.paymentDate}>Pay Date: {paymentDate}</Text>
+          </View>
         )}
       </View>
-    </View>
+      <View style={styles.separator} />
+    </>
   );
 }

@@ -1,11 +1,19 @@
 import { View, Text } from "@react-pdf/renderer";
 import { styles } from "@/components/pdf/pdf-styles";
-import type { Employee, CustomField, FieldVisibilitySettings } from "@/types";
+import { MONTHS } from "@/lib/constants";
+import type {
+  Employee,
+  PayPeriod,
+  CustomField,
+  FieldVisibilitySettings,
+} from "@/types";
 
 interface PdfEmployeeDetailsProps {
   employee: Employee;
+  payPeriod: PayPeriod;
   paidDays: number;
   lopDays: number;
+  paymentDate: string;
   customFields: CustomField[];
   fieldVisibility: FieldVisibilitySettings;
 }
@@ -13,22 +21,25 @@ interface PdfEmployeeDetailsProps {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.employeeField}>
-      <Text style={styles.employeeFieldLabel}>{label}</Text>
-      <Text style={styles.employeeFieldValue}>{value}</Text>
+      <Text style={styles.employeeLabel}>{label}</Text>
+      <Text style={styles.employeeColon}>:</Text>
+      <Text style={styles.employeeValue}>{value}</Text>
     </View>
   );
 }
 
 export function PdfEmployeeDetails({
   employee,
+  payPeriod,
   paidDays,
   lopDays,
+  paymentDate,
   customFields,
   fieldVisibility,
 }: PdfEmployeeDetailsProps) {
   return (
     <View style={styles.employeeSection}>
-      <Text style={styles.employeeSectionTitle}>Employee Details</Text>
+      <Text style={styles.sectionHeading}>Employee Summary</Text>
       <View style={styles.employeeGrid}>
         <Field label="Employee Name" value={employee.name} />
         {fieldVisibility.employeeId && employee.employeeId && (
@@ -37,14 +48,14 @@ export function PdfEmployeeDetails({
         {fieldVisibility.designation && employee.designation && (
           <Field label="Designation" value={employee.designation} />
         )}
-        {fieldVisibility.uan && employee.uan && (
-          <Field label="UAN" value={employee.uan} />
+        {fieldVisibility.payPeriod && (
+          <Field
+            label="Pay Period"
+            value={`${MONTHS[payPeriod.month - 1]} ${payPeriod.year}`}
+          />
         )}
-        {fieldVisibility.pan && employee.pan && (
-          <Field label="PAN" value={employee.pan} />
-        )}
-        {fieldVisibility.bankAccountNumber && employee.bankAccountNumber && (
-          <Field label="Bank A/C No." value={employee.bankAccountNumber} />
+        {fieldVisibility.paymentDate && paymentDate && (
+          <Field label="Pay Date" value={paymentDate} />
         )}
         {fieldVisibility.paidDays && (
           <Field label="Paid Days" value={String(paidDays)} />

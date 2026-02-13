@@ -12,13 +12,23 @@ export function PdfSummary({
   currencySymbol,
   amountInWords,
 }: PdfSummaryProps) {
+  const formatted = `${currencySymbol}${netPayable.toLocaleString("en-IN")}`;
+
   return (
-    <View style={styles.summaryBox}>
-      <Text style={styles.netPayableLabel}>NET PAYABLE</Text>
-      <Text style={styles.netPayableAmount}>
-        {currencySymbol} {netPayable.toLocaleString("en-IN")}
-      </Text>
-      <Text style={styles.amountInWords}>Amount in Words: {amountInWords}</Text>
-    </View>
+    <>
+      <View style={styles.netPayableBox}>
+        <View>
+          <Text style={styles.netPayableLabel}>Total Net Payable</Text>
+          <Text style={styles.netPayableSubtext}>
+            Gross Earnings - Total Deductions
+          </Text>
+        </View>
+        <Text style={styles.netPayableAmount}>{formatted}</Text>
+      </View>
+      <View style={styles.amountWordsContainer}>
+        <Text style={styles.amountWordsLabel}>Amount In Words : </Text>
+        <Text style={styles.amountWordsValue}>{amountInWords}</Text>
+      </View>
+    </>
   );
 }
