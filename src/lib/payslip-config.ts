@@ -25,8 +25,8 @@ export const EMPLOYEES = [
   {
     id: "2",
     name: "Manya Sharma",
-    employeeId: "tbd",
-    designation: "Marketing Manager",
+    employeeId: "05092025",
+    designation: "Marketing Executive",
   },
 
 ] as const;
