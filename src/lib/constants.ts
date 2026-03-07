@@ -1,10 +1,11 @@
 import type { FieldVisibilitySettings } from "@/types";
 
-export const STORAGE_KEYS = {
-  COMPANIES: "payslip-gen:companies",
-  EMPLOYEES: "payslip-gen:employees",
-  PAYSLIPS: "payslip-gen:payslips",
-} as const;
+export const STDB_URI =
+  process.env.NEXT_PUBLIC_STDB_URI || "ws://localhost:3000";
+export const STDB_DATABASE =
+  process.env.NEXT_PUBLIC_STDB_DATABASE || "payslip-gen";
+export const STDB_TOKEN_KEY = "spacetimedb:payslip:token";
+export const SIGNATURE_KEY = "payslip:boss:signature";
 
 export const DEFAULT_FIELD_VISIBILITY: FieldVisibilitySettings = {
   companyAddress: true,
@@ -28,7 +29,6 @@ export const LIMITS = {
   MAX_PAY_COMPONENTS: 20,
   LOGO_MAX_SIZE: 200,
   LOGO_QUALITY: 0.8,
-  LOCAL_STORAGE_WARN_MB: 4,
 } as const;
 
 export const MONTHS = [

@@ -1,0 +1,169 @@
+import { schema, table, t } from "spacetimedb/server";
+
+// PRIVATE -- only reducers can access
+const credential = table(
+  { name: "credential" },
+  {
+    userId: t.u64().primaryKey(),
+    passwordHash: t.string(),
+    salt: t.string(),
+  },
+);
+
+// PUBLIC -- clients can subscribe
+const user = table(
+  { name: "user", public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    username: t.string().unique(),
+    name: t.string(),
+    role: t.string(), // "boss" | "employee"
+    identity: t.identity().optional(),
+    employeeId: t.u64().optional(),
+    createdAt: t.timestamp(),
+  },
+);
+
+const company = table(
+  { name: "company", public: true },
+  {
+    id: t.u64().primaryKey(), // singleton, always 1n
+    name: t.string(),
+    address: t.string(),
+    city: t.string(),
+    pincode: t.string(),
+    logo: t.string(),
+    currency: t.string(),
+    bossName: t.string(),
+    updatedAt: t.timestamp(),
+  },
+);
+
+const employee = table(
+  {
+    name: "employee",
+    public: true,
+    indexes: [
+      {
+        name: "employee_user",
+        algorithm: "btree" as const,
+        columns: ["userId"],
+      },
+    ],
+  },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    userId: t.u64(),
+    name: t.string(),
+    employeeCode: t.string(),
+    designation: t.string(),
+    uan: t.string(),
+    pan: t.string(),
+    bankAccountNumber: t.string(),
+    customFieldsJson: t.string(),
+    createdAt: t.timestamp(),
+    updatedAt: t.timestamp(),
+  },
+);
+
+const payslipSubmission = table(
+  {
+    name: "payslip_submission",
+    public: true,
+    indexes: [
+      {
+        name: "payslip_employee",
+        algorithm: "btree" as const,
+        columns: ["employeeId"],
+      },
+      {
+        name: "payslip_status",
+        algorithm: "btree" as const,
+        columns: ["status"],
+      },
+    ],
+  },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    employeeId: t.u64(),
+    payMonth: t.u8(),
+    payYear: t.u16(),
+    paidDays: t.u8(),
+    lopDays: t.u8(),
+    paymentDate: t.string(),
+    earningsJson: t.string(),
+    deductionsJson: t.string(),
+    customFieldsJson: t.string(),
+    grossEarnings: t.u64(),
+    totalDeductions: t.u64(),
+    netPayable: t.u64(),
+    amountInWords: t.string(),
+    status: t.string(), // "draft" | "submitted" | "signed"
+    createdAt: t.timestamp(),
+    updatedAt: t.timestamp(),
+  },
+);
+
+const signedPayslip = table(
+  { name: "signed_payslip", public: true },
+  {
+    submissionId: t.u64().primaryKey(),
+    pdfBase64: t.string(),
+    signedAt: t.timestamp(),
+  },
+);
+
+const fieldVisibility = table(
+  { name: "field_visibility", public: true },
+  {
+    id: t.u64().primaryKey(), // singleton, always 1n
+    companyAddress: t.bool(),
+    companyCity: t.bool(),
+    companyPincode: t.bool(),
+    companyLogo: t.bool(),
+    employeeId: t.bool(),
+    uan: t.bool(),
+    pan: t.bool(),
+    bankAccountNumber: t.bool(),
+    designation: t.bool(),
+    paidDays: t.bool(),
+    lopDays: t.bool(),
+    paymentDate: t.bool(),
+    payPeriod: t.bool(),
+    customFields: t.bool(),
+  },
+);
+
+const earningsTemplate = table(
+  { name: "earnings_template", public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    name: t.string(),
+    defaultAmount: t.u64(),
+    sortOrder: t.u16(),
+  },
+);
+
+const deductionsTemplate = table(
+  { name: "deductions_template", public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    name: t.string(),
+    defaultAmount: t.u64(),
+    sortOrder: t.u16(),
+  },
+);
+
+const spacetimedb = schema(
+  credential,
+  user,
+  company,
+  employee,
+  payslipSubmission,
+  signedPayslip,
+  fieldVisibility,
+  earningsTemplate,
+  deductionsTemplate,
+);
+
+export default spacetimedb;

@@ -1,15 +1,11 @@
 import { View, Text } from "@react-pdf/renderer";
 import { styles } from "@/components/pdf/pdf-styles";
 import { MONTHS } from "@/lib/constants";
-import type {
-  Employee,
-  PayPeriod,
-  CustomField,
-  FieldVisibilitySettings,
-} from "@/types";
+import type { PayPeriod, CustomField, FieldVisibilitySettings } from "@/types";
+import type { PdfEmployee } from "@/components/pdf/payslip-document";
 
 interface PdfEmployeeDetailsProps {
-  employee: Employee;
+  employee: PdfEmployee;
   payPeriod: PayPeriod;
   paidDays: number;
   lopDays: number;

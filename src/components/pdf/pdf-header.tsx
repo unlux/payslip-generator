@@ -2,10 +2,11 @@
 import { View, Text, Image } from "@react-pdf/renderer";
 import { styles } from "@/components/pdf/pdf-styles";
 import { MONTHS } from "@/lib/constants";
-import type { Company, PayPeriod, FieldVisibilitySettings } from "@/types";
+import type { PayPeriod, FieldVisibilitySettings } from "@/types";
+import type { PdfCompany } from "@/components/pdf/payslip-document";
 
 interface PdfHeaderProps {
-  company: Company;
+  company: PdfCompany;
   payPeriod: PayPeriod;
   fieldVisibility: FieldVisibilitySettings;
 }

@@ -8,17 +8,33 @@ import { PdfDeductionsTable } from "@/components/pdf/pdf-deductions-table";
 import { PdfSummary } from "@/components/pdf/pdf-summary";
 import { getCurrencySymbol } from "@/lib/currencies";
 import type {
-  Company,
-  Employee,
   PayPeriod,
   PayComponent,
   CustomField,
   FieldVisibilitySettings,
 } from "@/types";
 
+export interface PdfCompany {
+  name: string;
+  address: string;
+  city: string;
+  pincode: string;
+  logo: string;
+  currency: string;
+}
+
+export interface PdfEmployee {
+  name: string;
+  employeeId: string;
+  designation: string;
+  uan: string;
+  pan: string;
+  bankAccountNumber: string;
+}
+
 export interface PayslipDocumentProps {
-  company: Company;
-  employee: Employee;
+  company: PdfCompany;
+  employee: PdfEmployee;
   payPeriod: PayPeriod;
   paidDays: number;
   lopDays: number;
@@ -32,6 +48,7 @@ export interface PayslipDocumentProps {
   amountInWords: string;
   fieldVisibility: FieldVisibilitySettings;
   signedBy?: string;
+  signatorySubtitle?: string;
   signatureImage?: string;
 }
 
@@ -51,6 +68,7 @@ export function PayslipDocument({
   amountInWords,
   fieldVisibility,
   signedBy,
+  signatorySubtitle,
   signatureImage,
 }: PayslipDocumentProps) {
   const currencySymbol = getCurrencySymbol(company.currency);
@@ -108,7 +126,9 @@ export function PayslipDocument({
                 {signedBy && (
                   <Text style={styles.signatoryName}>{signedBy}</Text>
                 )}
-                <Text style={styles.signatoryText}>CEO Skillion</Text>
+                <Text style={styles.signatoryText}>
+                  {signatorySubtitle || ""}
+                </Text>
               </View>
             </View>
           </View>
