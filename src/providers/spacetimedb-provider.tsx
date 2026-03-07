@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useRef,
+  useCallback,
 } from "react";
 import type { ReactNode } from "react";
 import { STDB_URI, STDB_DATABASE, STDB_TOKEN_KEY } from "@/lib/constants";
@@ -22,6 +23,7 @@ interface StdbContextValue {
   identity: StdbIdentity;
   connectionError: Error | null;
   isSubscriptionReady: boolean;
+  subscribeAll: () => void;
 }
 
 const StdbContext = createContext<StdbContextValue>({
@@ -30,6 +32,7 @@ const StdbContext = createContext<StdbContextValue>({
   identity: null,
   connectionError: null,
   isSubscriptionReady: false,
+  subscribeAll: () => {},
 });
 
 export function useStdb() {
@@ -43,6 +46,7 @@ export function StdbProvider({ children }: { children: ReactNode }) {
   const [connectionError, setConnectionError] = useState<Error | null>(null);
   const [isSubscriptionReady, setIsSubscriptionReady] = useState(false);
   const connRef = useRef<StdbConn>(null);
+  const dataSubscribedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,20 +68,13 @@ export function StdbProvider({ children }: { children: ReactNode }) {
             setIsConnected(true);
             setConnectionError(null);
 
+            // Only subscribe to user table on connect (for auth).
+            // All other tables are subscribed after login via subscribeAll().
             c.subscriptionBuilder()
               .onApplied(() => {
                 if (!cancelled) setIsSubscriptionReady(true);
               })
-              .subscribe([
-                "SELECT * FROM user",
-                "SELECT * FROM company",
-                "SELECT * FROM employee",
-                "SELECT * FROM payslip_submission",
-                "SELECT * FROM signed_payslip",
-                "SELECT * FROM field_visibility",
-                "SELECT * FROM earnings_template",
-                "SELECT * FROM deductions_template",
-              ]);
+              .subscribe(["SELECT * FROM user"]);
           })
           .onDisconnect(() => {
             if (cancelled) return;
@@ -115,6 +112,22 @@ export function StdbProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const subscribeAll = useCallback(() => {
+    if (!conn || dataSubscribedRef.current) return;
+    dataSubscribedRef.current = true;
+    conn
+      .subscriptionBuilder()
+      .subscribe([
+        "SELECT * FROM company",
+        "SELECT * FROM employee",
+        "SELECT * FROM payslip_submission",
+        "SELECT * FROM signed_payslip",
+        "SELECT * FROM field_visibility",
+        "SELECT * FROM earnings_template",
+        "SELECT * FROM deductions_template",
+      ]);
+  }, [conn]);
+
   const value = useMemo(
     () => ({
       conn,
@@ -122,8 +135,16 @@ export function StdbProvider({ children }: { children: ReactNode }) {
       identity,
       connectionError,
       isSubscriptionReady,
+      subscribeAll,
     }),
-    [conn, isConnected, identity, connectionError, isSubscriptionReady],
+    [
+      conn,
+      isConnected,
+      identity,
+      connectionError,
+      isSubscriptionReady,
+      subscribeAll,
+    ],
   );
 
   return <StdbContext.Provider value={value}>{children}</StdbContext.Provider>;

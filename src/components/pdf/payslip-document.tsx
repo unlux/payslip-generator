@@ -27,9 +27,6 @@ export interface PdfEmployee {
   name: string;
   employeeId: string;
   designation: string;
-  uan: string;
-  pan: string;
-  bankAccountNumber: string;
 }
 
 export interface PayslipDocumentProps {

@@ -57,9 +57,6 @@ const FIELD_LABELS: Record<keyof FieldVisibilitySettings, string> = {
   companyPincode: "Company Pincode",
   companyLogo: "Company Logo",
   employeeId: "Employee ID",
-  uan: "UAN",
-  pan: "PAN",
-  bankAccountNumber: "Bank Account Number",
   designation: "Designation",
   paidDays: "Paid Days",
   lopDays: "LOP Days",
@@ -91,9 +88,6 @@ export default function SettingsPage() {
     companyPincode: true,
     companyLogo: true,
     employeeId: true,
-    uan: true,
-    pan: true,
-    bankAccountNumber: true,
     designation: true,
     paidDays: true,
     lopDays: true,
@@ -152,7 +146,9 @@ export default function SettingsPage() {
       });
       toast.success("Company updated");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to update company");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update company",
+      );
     }
   }
 
@@ -162,7 +158,11 @@ export default function SettingsPage() {
       conn.reducers.updateFieldVisibility({ ...visForm });
       toast.success("Field visibility updated");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to update field visibility");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Failed to update field visibility",
+      );
     }
   }
 
@@ -257,7 +257,9 @@ export default function SettingsPage() {
       }
       setTemplateDialogOpen(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to save template");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save template",
+      );
     }
   }
 
@@ -271,7 +273,9 @@ export default function SettingsPage() {
       }
       toast.success("Template deleted");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete template");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete template",
+      );
     }
   }
 

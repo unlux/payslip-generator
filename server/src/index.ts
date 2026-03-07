@@ -228,9 +228,6 @@ export const init = spacetimedb.init((ctx) => {
     companyPincode: true,
     companyLogo: true,
     employeeId: true,
-    uan: true,
-    pan: true,
-    bankAccountNumber: true,
     designation: true,
     paidDays: true,
     lopDays: true,
@@ -342,9 +339,6 @@ export const updateFieldVisibility = spacetimedb.reducer(
     companyPincode: t.bool(),
     companyLogo: t.bool(),
     employeeId: t.bool(),
-    uan: t.bool(),
-    pan: t.bool(),
-    bankAccountNumber: t.bool(),
     designation: t.bool(),
     paidDays: t.bool(),
     lopDays: t.bool(),
@@ -386,9 +380,6 @@ export const createEmployeeAccount = spacetimedb.reducer(
       name,
       employeeCode,
       designation,
-      uan: "",
-      pan: "",
-      bankAccountNumber: "",
       customFieldsJson: "[]",
       createdAt: ctx.timestamp,
       updatedAt: ctx.timestamp,
@@ -424,9 +415,6 @@ export const updateEmployee = spacetimedb.reducer(
     name: t.string(),
     employeeCode: t.string(),
     designation: t.string(),
-    uan: t.string(),
-    pan: t.string(),
-    bankAccountNumber: t.string(),
     customFieldsJson: t.string(),
   },
   (ctx, { empId, ...fields }) => {
@@ -577,9 +565,6 @@ export const rejectPayslip = spacetimedb.reducer(
 
 export const updateMyProfile = spacetimedb.reducer(
   {
-    uan: t.string(),
-    pan: t.string(),
-    bankAccountNumber: t.string(),
     customFieldsJson: t.string(),
   },
   (ctx, fields) => {

@@ -93,9 +93,6 @@ export default function PayslipReviewPage({
           name: employee.name,
           employeeId: employee.employeeCode,
           designation: employee.designation,
-          uan: employee.uan,
-          pan: employee.pan,
-          bankAccountNumber: employee.bankAccountNumber,
         },
         payPeriod: { month: submission.payMonth, year: submission.payYear },
         paidDays: submission.paidDays,
@@ -270,25 +267,6 @@ export default function PayslipReviewPage({
                   <span>{employee?.designation || "-"}</span>
                 </>
               )}
-              {fieldVisibility.uan && employee?.uan && (
-                <>
-                  <span className="text-muted-foreground">UAN</span>
-                  <span>{employee.uan}</span>
-                </>
-              )}
-              {fieldVisibility.pan && employee?.pan && (
-                <>
-                  <span className="text-muted-foreground">PAN</span>
-                  <span>{employee.pan}</span>
-                </>
-              )}
-              {fieldVisibility.bankAccountNumber &&
-                employee?.bankAccountNumber && (
-                  <>
-                    <span className="text-muted-foreground">Bank Account</span>
-                    <span>{employee.bankAccountNumber}</span>
-                  </>
-                )}
               {fieldVisibility.paidDays && (
                 <>
                   <span className="text-muted-foreground">Paid Days</span>

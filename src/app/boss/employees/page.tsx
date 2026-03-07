@@ -50,9 +50,6 @@ export default function EmployeesPage() {
     name: "",
     employeeCode: "",
     designation: "",
-    uan: "",
-    pan: "",
-    bankAccountNumber: "",
   });
 
   const userMap = useMemo(() => {
@@ -90,7 +87,9 @@ export default function EmployeesPage() {
         designation: "",
       });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to create employee");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create employee",
+      );
     }
   }
 
@@ -100,9 +99,6 @@ export default function EmployeesPage() {
       name: emp.name,
       employeeCode: emp.employeeCode,
       designation: emp.designation,
-      uan: emp.uan,
-      pan: emp.pan,
-      bankAccountNumber: emp.bankAccountNumber,
     });
     setEditOpen(true);
   }
@@ -119,15 +115,14 @@ export default function EmployeesPage() {
         name: editForm.name,
         employeeCode: editForm.employeeCode,
         designation: editForm.designation,
-        uan: editForm.uan,
-        pan: editForm.pan,
-        bankAccountNumber: editForm.bankAccountNumber,
         customFieldsJson: JSON.stringify([]),
       });
       toast.success("Employee updated");
       setEditOpen(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to update employee");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update employee",
+      );
     }
   }
 
@@ -139,7 +134,9 @@ export default function EmployeesPage() {
       setDeleteOpen(false);
       setSelectedEmployee(null);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete employee");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete employee",
+      );
     }
   }
 
@@ -299,39 +296,6 @@ export default function EmployeesPage() {
                 value={editForm.designation}
                 onChange={(e) =>
                   setEditForm({ ...editForm, designation: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-uan">UAN</Label>
-              <Input
-                id="edit-uan"
-                value={editForm.uan}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, uan: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-pan">PAN</Label>
-              <Input
-                id="edit-pan"
-                value={editForm.pan}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, pan: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-bank">Bank Account Number</Label>
-              <Input
-                id="edit-bank"
-                value={editForm.bankAccountNumber}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    bankAccountNumber: e.target.value,
-                  })
                 }
               />
             </div>

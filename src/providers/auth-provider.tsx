@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useMemo, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useCallback,
+  useEffect,
+} from "react";
 import type { ReactNode } from "react";
 import { useStdb } from "./spacetimedb-provider";
 import { useRevision } from "@/hooks/use-db";
@@ -32,7 +38,8 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { isConnected, identity, isSubscriptionReady } = useStdb();
+  const { isConnected, identity, isSubscriptionReady, subscribeAll } =
+    useStdb();
   const { conn, revision } = useRevision("user");
 
   const user = useMemo<DbUser | null>(() => {
@@ -50,6 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conn, identity, isSubscriptionReady, revision]);
+
+  // Subscribe to all data tables once authenticated
+  useEffect(() => {
+    if (user) subscribeAll();
+  }, [user, subscribeAll]);
 
   const role = user?.role as UserRole | null;
   const employeeId = user?.employeeId;

@@ -20,16 +20,10 @@ export default function EmployeeProfilePage() {
   const employee = useEmployee(employeeId);
   const [loaded, setLoaded] = useState(false);
 
-  const [uan, setUan] = useState("");
-  const [pan, setPan] = useState("");
-  const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
 
   if (employee && !loaded) {
     setLoaded(true);
-    setUan(employee.uan);
-    setPan(employee.pan);
-    setBankAccountNumber(employee.bankAccountNumber);
     setCustomFields(parseJsonCustomFields(employee.customFieldsJson));
   }
 
@@ -60,9 +54,6 @@ export default function EmployeeProfilePage() {
     try {
       const validFields = customFields.filter((f) => f.key && f.value);
       conn.reducers.updateMyProfile({
-        uan,
-        pan,
-        bankAccountNumber,
         customFieldsJson: JSON.stringify(validFields),
       });
       toast.success("Profile updated");
@@ -107,43 +98,6 @@ export default function EmployeeProfilePage() {
                 <p className="mt-1 font-medium">
                   {employee.designation || "-"}
                 </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Editable Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <Label htmlFor="uan">UAN</Label>
-                <Input
-                  id="uan"
-                  value={uan}
-                  onChange={(e) => setUan(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="pan">PAN</Label>
-                <Input
-                  id="pan"
-                  value={pan}
-                  onChange={(e) => setPan(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="bank">Bank Account Number</Label>
-                <Input
-                  id="bank"
-                  value={bankAccountNumber}
-                  onChange={(e) => setBankAccountNumber(e.target.value)}
-                  className="mt-1"
-                />
               </div>
             </div>
           </CardContent>

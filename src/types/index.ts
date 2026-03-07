@@ -7,9 +7,6 @@ export interface FieldVisibilitySettings {
   companyPincode: boolean;
   companyLogo: boolean;
   employeeId: boolean;
-  uan: boolean;
-  pan: boolean;
-  bankAccountNumber: boolean;
   designation: boolean;
   paidDays: boolean;
   lopDays: boolean;
@@ -63,9 +60,6 @@ export interface DbEmployee {
   name: string;
   employeeCode: string;
   designation: string;
-  uan: string;
-  pan: string;
-  bankAccountNumber: string;
   customFieldsJson: string;
   createdAt: { microsSinceUnixEpoch: bigint };
   updatedAt: { microsSinceUnixEpoch: bigint };

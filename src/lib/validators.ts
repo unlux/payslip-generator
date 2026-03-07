@@ -50,9 +50,6 @@ export const employeeSchema = z.object({
   name: z.string().min(1, "Employee name is required"),
   employeeCode: z.string().default(""),
   designation: z.string().default(""),
-  uan: z.string().default(""),
-  pan: z.string().default(""),
-  bankAccountNumber: z.string().default(""),
   customFields: z.array(customFieldSchema).default([]),
 });
 
