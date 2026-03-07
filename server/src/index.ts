@@ -660,7 +660,8 @@ export const deleteDraft = spacetimedb.reducer(
   { submissionId: t.u64() },
   (ctx, { submissionId }) => {
     const { sub } = findOwnSubmission(ctx, submissionId);
-    if (sub.status !== "draft") throw new SenderError("Can only delete drafts");
+    if (sub.status === "signed")
+      throw new SenderError("Cannot delete signed payslips");
 
     ctx.db.payslipSubmission.id.delete(submissionId);
   },

@@ -50,11 +50,9 @@ export default function EmployeeDashboardPage() {
     if (deletingId === id) {
       try {
         conn.reducers.deleteDraft({ submissionId: id });
-        toast.success("Draft deleted");
+        toast.success("Submission deleted");
       } catch (err: unknown) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to delete draft",
-        );
+        toast.error(err instanceof Error ? err.message : "Failed to delete");
       }
       setDeletingId(null);
     } else {
@@ -127,29 +125,29 @@ export default function EmployeeDashboardPage() {
                       </Link>
                     </Button>
                     {s.status === "draft" && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleResubmit(s.id)}
-                          title="Resubmit"
-                        >
-                          <RotateCcw className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(s.id)}
-                          title={
-                            deletingId === s.id
-                              ? "Click again to confirm"
-                              : "Delete"
-                          }
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleResubmit(s.id)}
+                        title="Resubmit"
+                      >
+                        <RotateCcw className="size-4" />
+                      </Button>
+                    )}
+                    {s.status !== "signed" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(s.id)}
+                        title={
+                          deletingId === s.id
+                            ? "Click again to confirm"
+                            : "Delete"
+                        }
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
                     )}
                   </div>
                 </TableCell>

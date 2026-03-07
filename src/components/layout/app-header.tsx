@@ -5,8 +5,18 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LogOut, Upload } from "lucide-react";
-import { useRef, useCallback } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { LogOut, Upload, KeyRound } from "lucide-react";
+import { useRef, useCallback, useState } from "react";
+import { useStdb } from "@/providers/spacetimedb-provider";
 import { SIGNATURE_KEY } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -25,7 +35,12 @@ const EMPLOYEE_NAV = [
 export function AppHeader() {
   const pathname = usePathname();
   const { isLoggedIn, role, user, logout } = useAuth();
+  const { conn } = useStdb();
   const signatureInputRef = useRef<HTMLInputElement>(null);
+  const [pwOpen, setPwOpen] = useState(false);
+  const [oldPw, setOldPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
 
   const navItems =
     role === "boss" ? BOSS_NAV : role === "employee" ? EMPLOYEE_NAV : [];
@@ -44,6 +59,30 @@ export function AppHeader() {
     },
     [],
   );
+
+  function handleChangePassword() {
+    if (!conn) return;
+    if (newPw !== confirmPw) {
+      toast.error("Passwords don't match");
+      return;
+    }
+    if (newPw.length < 4) {
+      toast.error("Password must be at least 4 characters");
+      return;
+    }
+    try {
+      conn.reducers.changePassword({ oldPassword: oldPw, newPassword: newPw });
+      toast.success("Password changed");
+      setPwOpen(false);
+      setOldPw("");
+      setNewPw("");
+      setConfirmPw("");
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to change password",
+      );
+    }
+  }
 
   const handleLogout = useCallback(() => {
     logout();
@@ -103,6 +142,65 @@ export function AppHeader() {
                 </Button>
               </>
             )}
+
+            <Dialog
+              open={pwOpen}
+              onOpenChange={(open) => {
+                setPwOpen(open);
+                if (!open) {
+                  setOldPw("");
+                  setNewPw("");
+                  setConfirmPw("");
+                }
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="mr-2">
+                  <KeyRound className="mr-1 size-4" />
+                  Password
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Change Password</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="oldPw">Current Password</Label>
+                    <Input
+                      id="oldPw"
+                      type="password"
+                      value={oldPw}
+                      onChange={(e) => setOldPw(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="newPw">New Password</Label>
+                    <Input
+                      id="newPw"
+                      type="password"
+                      value={newPw}
+                      onChange={(e) => setNewPw(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="confirmPw">Confirm New Password</Label>
+                    <Input
+                      id="confirmPw"
+                      type="password"
+                      value={confirmPw}
+                      onChange={(e) => setConfirmPw(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button className="w-full" onClick={handleChangePassword}>
+                    Change Password
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <span className="mr-3 text-sm text-muted-foreground">
               {user?.name}

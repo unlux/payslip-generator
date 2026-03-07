@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X } from "lucide-react";
+import { format } from "date-fns";
+import { Plus, X, Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useStdb } from "@/providers/spacetimedb-provider";
 import {
@@ -29,6 +30,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 const currentDate = new Date();
 const currentMonth = currentDate.getMonth() + 1;
@@ -47,7 +55,7 @@ export default function SubmitPayslipPage() {
   const [payYear, setPayYear] = useState(currentYear);
   const [paidDays, setPaidDays] = useState(30);
   const [lopDays, setLopDays] = useState(0);
-  const [paymentDate, setPaymentDate] = useState("");
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>();
   const [initialized, setInitialized] = useState(false);
 
   const [earnings, setEarnings] = useState<PayComponent[]>([]);
@@ -134,7 +142,7 @@ export default function SubmitPayslipPage() {
         payYear,
         paidDays,
         lopDays,
-        paymentDate,
+        paymentDate: paymentDate ? format(paymentDate, "yyyy-MM-dd") : "",
         earningsJson: JSON.stringify(validEarnings),
         deductionsJson: JSON.stringify(
           deductions.filter((d) => d.name && d.amount >= 0),
@@ -248,14 +256,26 @@ export default function SubmitPayslipPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="paymentDate">Payment Date</Label>
-                <Input
-                  id="paymentDate"
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  className="mt-1"
-                />
+                <Label>Payment Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      data-empty={!paymentDate}
+                      className="mt-1 w-full justify-start text-left font-normal data-[empty=true]:text-muted-foreground"
+                    >
+                      <CalendarIcon className="size-4" />
+                      {paymentDate ? format(paymentDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={paymentDate}
+                      onSelect={setPaymentDate}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </CardContent>
