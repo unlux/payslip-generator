@@ -16,7 +16,7 @@ import { MONTHS } from "@/lib/constants";
 import { getCurrencySymbol } from "@/lib/currencies";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/payslip/status-badge";
 import {
   Table,
   TableBody,
@@ -46,12 +46,15 @@ export default function EmployeeDashboardPage() {
   );
 
   function handleDelete(id: bigint) {
+    if (!conn) return;
     if (deletingId === id) {
       try {
-        conn?.reducers.deleteDraft({ submissionId: id });
+        conn.reducers.deleteDraft({ submissionId: id });
         toast.success("Draft deleted");
       } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "Failed to delete draft");
+        toast.error(
+          err instanceof Error ? err.message : "Failed to delete draft",
+        );
       }
       setDeletingId(null);
     } else {
@@ -60,28 +63,12 @@ export default function EmployeeDashboardPage() {
   }
 
   function handleResubmit(id: bigint) {
+    if (!conn) return;
     try {
-      conn?.reducers.resubmitPayslip({ submissionId: id });
+      conn.reducers.resubmitPayslip({ submissionId: id });
       toast.success("Payslip resubmitted");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to resubmit");
-    }
-  }
-
-  function statusBadge(status: string) {
-    switch (status) {
-      case "draft":
-        return <Badge variant="secondary">Draft</Badge>;
-      case "submitted":
-        return <Badge variant="default">Submitted</Badge>;
-      case "signed":
-        return (
-          <Badge variant="outline" className="text-green-600">
-            Signed
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
     }
   }
 
@@ -126,7 +113,9 @@ export default function EmployeeDashboardPage() {
                   {symbol}
                   {centsToAmount(s.netPayable).toLocaleString()}
                 </TableCell>
-                <TableCell>{statusBadge(s.status)}</TableCell>
+                <TableCell>
+                  <StatusBadge status={s.status} />
+                </TableCell>
                 <TableCell>
                   {stdbTimestampToDate(s.createdAt).toLocaleDateString()}
                 </TableCell>

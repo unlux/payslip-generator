@@ -1,14 +1,13 @@
 "use client";
 
-import { use, useCallback } from "react";
+import { use, useCallback, useMemo } from "react";
 import { Download, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useStdb } from "@/providers/spacetimedb-provider";
+import { useAuth } from "@/providers/auth-provider";
 import {
   usePayslipSubmission,
-  useEmployee,
   useCompany,
-  useFieldVisibility,
   useSignedPayslip,
   centsToAmount,
   parseJsonPayComponents,
@@ -16,9 +15,10 @@ import {
 } from "@/hooks/use-db";
 import { MONTHS } from "@/lib/constants";
 import { getCurrencySymbol } from "@/lib/currencies";
+import { downloadBase64Pdf } from "@/lib/pdf-utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/payslip/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -37,72 +37,58 @@ export default function PayslipDetailPage({
 }) {
   const { id } = use(params);
   const { conn } = useStdb();
-  const submission = usePayslipSubmission(BigInt(id));
-  useEmployee(submission?.employeeId);
+  const { employeeId } = useAuth();
+
+  let submissionId: bigint | undefined;
+  try {
+    submissionId = BigInt(id);
+  } catch {
+    // invalid URL param
+  }
+
+  const submission = usePayslipSubmission(submissionId);
   const company = useCompany();
-  useFieldVisibility();
-  const signedPayslip = useSignedPayslip(submission?.id ?? BigInt(0));
+  const signedPayslip = useSignedPayslip(submission?.id);
 
   const symbol = company ? getCurrencySymbol(company.currency) : "";
 
-  const earnings = submission
-    ? parseJsonPayComponents(submission.earningsJson)
-    : [];
-  const deductions = submission
-    ? parseJsonPayComponents(submission.deductionsJson)
-    : [];
+  const earnings = useMemo(
+    () => (submission ? parseJsonPayComponents(submission.earningsJson) : []),
+    [submission],
+  );
+  const deductions = useMemo(
+    () => (submission ? parseJsonPayComponents(submission.deductionsJson) : []),
+    [submission],
+  );
 
   const handleDownload = useCallback(() => {
-    if (!signedPayslip?.pdfBase64) {
-      toast.error("No signed PDF available");
-      return;
-    }
+    if (!signedPayslip?.pdfBase64 || !submission) return;
     try {
-      const byteChars = atob(signedPayslip.pdfBase64);
-      const byteNumbers = new Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) {
-        byteNumbers[i] = byteChars.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `payslip-${MONTHS[submission!.payMonth - 1]}-${submission!.payYear}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadBase64Pdf(
+        signedPayslip.pdfBase64,
+        `payslip-${MONTHS[submission.payMonth - 1]}-${submission.payYear}.pdf`,
+      );
     } catch {
       toast.error("Failed to download PDF");
     }
   }, [signedPayslip, submission]);
 
   function handleResubmit() {
-    if (!submission) return;
+    if (!submission || !conn) return;
     try {
-      conn?.reducers.resubmitPayslip({ submissionId: submission.id });
+      conn.reducers.resubmitPayslip({ submissionId: submission.id });
       toast.success("Payslip resubmitted");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to resubmit");
     }
   }
 
-  function statusBadge(status: string) {
-    switch (status) {
-      case "draft":
-        return <Badge variant="secondary">Draft</Badge>;
-      case "submitted":
-        return <Badge variant="default">Submitted</Badge>;
-      case "signed":
-        return (
-          <Badge variant="outline" className="text-green-600">
-            Signed
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+  if (!submissionId || (submission && submission.employeeId !== employeeId)) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <p className="text-muted-foreground">Payslip not found.</p>
+      </div>
+    );
   }
 
   if (!submission) {
@@ -143,7 +129,7 @@ export default function PayslipDetailPage({
 
       <div className="max-w-3xl space-y-6">
         <div className="flex items-center gap-3">
-          {statusBadge(submission.status)}
+          <StatusBadge status={submission.status} />
           <span className="text-sm text-muted-foreground">
             Submitted{" "}
             {stdbTimestampToDate(submission.createdAt).toLocaleDateString()}

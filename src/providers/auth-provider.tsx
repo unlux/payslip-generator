@@ -1,14 +1,9 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useCallback,
-  useState,
-} from "react";
+import { createContext, useContext, useMemo, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useStdb } from "./spacetimedb-provider";
+import { useRevision } from "@/hooks/use-db";
 import type { UserRole, DbUser } from "@/types";
 import { STDB_TOKEN_KEY } from "@/lib/constants";
 
@@ -18,7 +13,7 @@ interface AuthContextValue {
   employeeId: bigint | undefined;
   isLoading: boolean;
   isLoggedIn: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => void;
   logout: () => void;
 }
 
@@ -28,7 +23,7 @@ const AuthContext = createContext<AuthContextValue>({
   employeeId: undefined,
   isLoading: true,
   isLoggedIn: false,
-  login: async () => {},
+  login: () => {},
   logout: () => {},
 });
 
@@ -37,8 +32,9 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { conn, isConnected, identity, isSubscriptionReady } = useStdb();
-  const [, setLoginError] = useState<string | null>(null);
+  const { isConnected, identity, isSubscriptionReady } = useStdb();
+  const { conn, revision } = useRevision("user");
+
   const user = useMemo<DbUser | null>(() => {
     if (!conn || !identity || !isSubscriptionReady) return null;
     try {
@@ -48,11 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return u as DbUser;
         }
       }
-    } catch {
-      // Table not ready yet
+    } catch (err) {
+      console.error("AuthProvider user lookup:", err);
     }
     return null;
-  }, [conn, identity, isSubscriptionReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conn, identity, isSubscriptionReady, revision]);
 
   const role = user?.role as UserRole | null;
   const employeeId = user?.employeeId;
@@ -60,16 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLoggedIn = !!user;
 
   const login = useCallback(
-    async (username: string, password: string) => {
+    (username: string, password: string) => {
       if (!conn) throw new Error("Not connected to database");
-      setLoginError(null);
-      try {
-        conn.reducers.login({ username, password });
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Login failed";
-        setLoginError(msg);
-        throw err;
-      }
+      conn.reducers.login({ username, password });
     },
     [conn],
   );
@@ -78,8 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!conn) return;
     try {
       conn.reducers.logout({});
-    } catch {
-      // ignore
+    } catch (err) {
+      console.warn("Logout reducer failed:", err);
     }
     localStorage.removeItem(STDB_TOKEN_KEY);
   }, [conn]);

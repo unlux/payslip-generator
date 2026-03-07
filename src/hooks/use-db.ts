@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useStdb } from "@/providers/spacetimedb-provider";
 import type {
   DbCompany,
@@ -17,16 +17,41 @@ import type {
 } from "@/types";
 import { DEFAULT_FIELD_VISIBILITY } from "@/lib/constants";
 
-function useTableRows<T>(tableName: string): T[] {
+export function useRevision(tableName: string) {
   const { conn, isSubscriptionReady } = useStdb();
+  const [revision, setRevision] = useState(0);
+  const bump = useCallback(() => setRevision((r) => r + 1), []);
+
+  useEffect(() => {
+    if (!conn || !isSubscriptionReady) return;
+    const table = conn.db[tableName];
+    if (!table) return;
+    table.onInsert(bump);
+    table.onUpdate(bump);
+    table.onDelete(bump);
+    return () => {
+      table.removeOnInsert(bump);
+      table.removeOnUpdate(bump);
+      table.removeOnDelete(bump);
+    };
+  }, [conn, isSubscriptionReady, tableName, bump]);
+
+  return { conn, isSubscriptionReady, revision };
+}
+
+function useTableRows<T>(tableName: string): T[] {
+  const { conn, isSubscriptionReady, revision } = useRevision(tableName);
+
   return useMemo(() => {
     if (!conn || !isSubscriptionReady) return [];
     try {
       return [...conn.db[tableName].iter()] as T[];
-    } catch {
+    } catch (err) {
+      console.error(`useTableRows(${tableName}):`, err);
       return [];
     }
-  }, [conn, isSubscriptionReady, tableName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conn, isSubscriptionReady, tableName, revision]);
 }
 
 export function useUsers(): DbUser[] {
@@ -34,8 +59,18 @@ export function useUsers(): DbUser[] {
 }
 
 export function useCompany(): DbCompany | null {
-  const rows = useTableRows<DbCompany>("company");
-  return rows.find((r) => r.id === 1n) ?? null;
+  const { conn, isSubscriptionReady, revision } = useRevision("company");
+
+  return useMemo(() => {
+    if (!conn || !isSubscriptionReady) return null;
+    try {
+      return conn.db.company.id.find(1n) ?? null;
+    } catch (err) {
+      console.error("useCompany:", err);
+      return null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conn, isSubscriptionReady, revision]);
 }
 
 export function useEmployees(): DbEmployee[] {
@@ -43,13 +78,22 @@ export function useEmployees(): DbEmployee[] {
 }
 
 export function useEmployee(id: bigint | undefined): DbEmployee | null {
-  const employees = useEmployees();
-  if (id === undefined) return null;
-  return employees.find((e) => e.id === id) ?? null;
+  const { conn, isSubscriptionReady, revision } = useRevision("employee");
+
+  return useMemo(() => {
+    if (id === undefined || !conn || !isSubscriptionReady) return null;
+    try {
+      return conn.db.employee.id.find(id) ?? null;
+    } catch (err) {
+      console.error("useEmployee:", err);
+      return null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conn, isSubscriptionReady, id, revision]);
 }
 
 export function usePayslipSubmissions(): DbPayslipSubmission[] {
-  return useTableRows<DbPayslipSubmission>("payslip_submission");
+  return useTableRows<DbPayslipSubmission>("payslipSubmission");
 }
 
 export function useMyPayslipSubmissions(
@@ -62,22 +106,48 @@ export function useMyPayslipSubmissions(
   }, [all, employeeId]);
 }
 
-export function usePayslipSubmission(id: bigint): DbPayslipSubmission | null {
-  const all = usePayslipSubmissions();
-  return all.find((s) => s.id === id) ?? null;
+export function usePayslipSubmission(
+  id: bigint | undefined,
+): DbPayslipSubmission | null {
+  const { conn, isSubscriptionReady, revision } =
+    useRevision("payslipSubmission");
+
+  return useMemo(() => {
+    if (id === undefined || !conn || !isSubscriptionReady) return null;
+    try {
+      return conn.db.payslipSubmission.id.find(id) ?? null;
+    } catch (err) {
+      console.error("usePayslipSubmission:", err);
+      return null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conn, isSubscriptionReady, id, revision]);
 }
 
 export function useFieldVisibility(): FieldVisibilitySettings {
-  const rows = useTableRows<DbFieldVisibility>("field_visibility");
-  const row = rows.find((r) => r.id === 1n);
-  if (!row) return DEFAULT_FIELD_VISIBILITY;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id: _id, ...settings } = row;
-  return settings;
+  const { conn, isSubscriptionReady, revision } =
+    useRevision("fieldVisibility");
+
+  return useMemo(() => {
+    if (!conn || !isSubscriptionReady) return DEFAULT_FIELD_VISIBILITY;
+    try {
+      const row = conn.db.fieldVisibility.id.find(1n) as
+        | DbFieldVisibility
+        | undefined;
+      if (!row) return DEFAULT_FIELD_VISIBILITY;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id: _id, ...settings } = row;
+      return settings;
+    } catch (err) {
+      console.error("useFieldVisibility:", err);
+      return DEFAULT_FIELD_VISIBILITY;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conn, isSubscriptionReady, revision]);
 }
 
 export function useEarningsTemplates(): DbEarningsTemplate[] {
-  const rows = useTableRows<DbEarningsTemplate>("earnings_template");
+  const rows = useTableRows<DbEarningsTemplate>("earningsTemplate");
   return useMemo(
     () => [...rows].sort((a, b) => a.sortOrder - b.sortOrder),
     [rows],
@@ -85,23 +155,29 @@ export function useEarningsTemplates(): DbEarningsTemplate[] {
 }
 
 export function useDeductionsTemplates(): DbDeductionsTemplate[] {
-  const rows = useTableRows<DbDeductionsTemplate>("deductions_template");
+  const rows = useTableRows<DbDeductionsTemplate>("deductionsTemplate");
   return useMemo(
     () => [...rows].sort((a, b) => a.sortOrder - b.sortOrder),
     [rows],
   );
 }
 
-export function useSignedPayslip(submissionId: bigint): DbSignedPayslip | null {
-  const { conn, isSubscriptionReady } = useStdb();
+export function useSignedPayslip(
+  submissionId: bigint | undefined,
+): DbSignedPayslip | null {
+  const { conn, isSubscriptionReady, revision } = useRevision("signedPayslip");
+
   return useMemo(() => {
-    if (!conn || !isSubscriptionReady) return null;
+    if (submissionId === undefined || !conn || !isSubscriptionReady)
+      return null;
     try {
-      return conn.db.signed_payslip.submissionId.find(submissionId) ?? null;
-    } catch {
+      return conn.db.signedPayslip.submissionId.find(submissionId) ?? null;
+    } catch (err) {
+      console.error("useSignedPayslip:", err);
       return null;
     }
-  }, [conn, isSubscriptionReady, submissionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conn, isSubscriptionReady, submissionId, revision]);
 }
 
 // Helpers to convert between DB BigInt cents and display numbers
@@ -113,20 +189,20 @@ export function amountToCents(amount: number): bigint {
   return BigInt(Math.round(amount * 100));
 }
 
-export function parseJsonPayComponents(json: string): PayComponent[] {
+function safeParseJsonArray<T>(json: string): T[] {
   try {
-    return JSON.parse(json) as PayComponent[];
+    return JSON.parse(json) as T[];
   } catch {
     return [];
   }
 }
 
+export function parseJsonPayComponents(json: string): PayComponent[] {
+  return safeParseJsonArray<PayComponent>(json);
+}
+
 export function parseJsonCustomFields(json: string): CustomField[] {
-  try {
-    return JSON.parse(json) as CustomField[];
-  } catch {
-    return [];
-  }
+  return safeParseJsonArray<CustomField>(json);
 }
 
 export function stdbTimestampToDate(ts: {

@@ -56,9 +56,10 @@ export default function EmployeeProfilePage() {
   }
 
   function handleSave() {
+    if (!conn) return;
     try {
       const validFields = customFields.filter((f) => f.key && f.value);
-      conn?.reducers.updateMyProfile({
+      conn.reducers.updateMyProfile({
         uan,
         pan,
         bankAccountNumber,

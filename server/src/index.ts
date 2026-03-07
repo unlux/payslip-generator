@@ -1,21 +1,24 @@
 import spacetimedb from "./schema";
-import { t, SenderError, type Identity } from "spacetimedb/server";
+import { t, SenderError } from "spacetimedb/server";
+export default spacetimedb;
 
 // --- Pure JS SHA-256 ---
+const SHA256_K: number[] = [
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+  0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+  0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+  0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+  0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+  0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+];
+
 function sha256(message: string): string {
-  const K: number[] = [
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
-    0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
-    0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
-    0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
-    0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-    0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-  ];
+  const K = SHA256_K;
 
   function rr(v: number, n: number) {
     return (v >>> n) | (v << (32 - n));
@@ -25,7 +28,16 @@ function sha256(message: string): string {
   const bytes: number[] = [];
   for (let i = 0; i < message.length; i++) {
     const c = message.charCodeAt(i);
-    if (c < 0x80) bytes.push(c);
+    if (c >= 0xd800 && c <= 0xdbff && i + 1 < message.length) {
+      const c2 = message.charCodeAt(++i);
+      const cp = 0x10000 + ((c & 0x3ff) << 10) + (c2 & 0x3ff);
+      bytes.push(
+        0xf0 | (cp >> 18),
+        0x80 | ((cp >> 12) & 0x3f),
+        0x80 | ((cp >> 6) & 0x3f),
+        0x80 | (cp & 0x3f),
+      );
+    } else if (c < 0x80) bytes.push(c);
     else if (c < 0x800) {
       bytes.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f));
     } else {
@@ -127,7 +139,8 @@ function generateSalt(
 
 // --- Auth helpers ---
 
-function getUserByIdentity(ctx: any, sender: Identity) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getUserByIdentity(ctx: any, sender: any) {
   const senderHex = sender.toHexString();
   for (const u of ctx.db.user.iter()) {
     if (u.identity && u.identity.toHexString() === senderHex) return u;
@@ -135,6 +148,7 @@ function getUserByIdentity(ctx: any, sender: Identity) {
   return undefined;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function assertBoss(ctx: any) {
   const user = getUserByIdentity(ctx, ctx.sender);
   if (!user || user.role !== "boss")
@@ -142,6 +156,7 @@ function assertBoss(ctx: any) {
   return user;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function assertEmployee(ctx: any) {
   const user = getUserByIdentity(ctx, ctx.sender);
   if (!user || user.role !== "employee")
@@ -149,16 +164,31 @@ function assertEmployee(ctx: any) {
   return user;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getUserByUsername(ctx: any, username: string) {
-  for (const u of ctx.db.user.iter()) {
-    if (u.username === username) return u;
-  }
-  return undefined;
+  return ctx.db.user.username.find(username) ?? undefined;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function assertOwnSubmission(ctx: any) {
+  const user = assertEmployee(ctx);
+  if (!user.employeeId) throw new SenderError("No employee profile linked");
+  return user;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findOwnSubmission(ctx: any, submissionId: bigint) {
+  const user = assertOwnSubmission(ctx);
+  const sub = ctx.db.payslipSubmission.id.find(submissionId);
+  if (!sub) throw new SenderError("Submission not found");
+  if (sub.employeeId !== user.employeeId)
+    throw new SenderError("Not your submission");
+  return { user, sub };
 }
 
 // --- Lifecycle ---
 
-spacetimedb.init((ctx) => {
+export const init = spacetimedb.init((ctx) => {
   // Seed boss account
   const bossUser = ctx.db.user.insert({
     id: 0n,
@@ -191,7 +221,7 @@ spacetimedb.init((ctx) => {
   });
 
   // Seed field visibility defaults
-  ctx.db.field_visibility.insert({
+  ctx.db.fieldVisibility.insert({
     id: 1n,
     companyAddress: true,
     companyCity: true,
@@ -210,7 +240,7 @@ spacetimedb.init((ctx) => {
   });
 
   // Seed default earnings template
-  ctx.db.earnings_template.insert({
+  ctx.db.earningsTemplate.insert({
     id: 0n,
     name: "Base Pay",
     defaultAmount: 0n,
@@ -220,13 +250,12 @@ spacetimedb.init((ctx) => {
   console.info("Database initialized with default boss account and company");
 });
 
-spacetimedb.clientConnected((_ctx) => {});
-spacetimedb.clientDisconnected((_ctx) => {});
+export const onConnect = spacetimedb.clientConnected((_ctx) => {});
+export const onDisconnect = spacetimedb.clientDisconnected((_ctx) => {});
 
 // --- Auth reducers ---
 
 export const login = spacetimedb.reducer(
-  "login",
   { username: t.string(), password: t.string() },
   (ctx, { username, password }) => {
     const user = getUserByUsername(ctx, username);
@@ -239,19 +268,23 @@ export const login = spacetimedb.reducer(
     if (hash !== cred.passwordHash)
       throw new SenderError("Invalid username or password");
 
+    // Clear any existing identity binding for this sender
+    const existingSession = getUserByIdentity(ctx, ctx.sender);
+    if (existingSession) {
+      ctx.db.user.id.update({ ...existingSession, identity: undefined });
+    }
     // Link identity to user
     ctx.db.user.id.update({ ...user, identity: ctx.sender });
   },
 );
 
-export const logout = spacetimedb.reducer("logout", {}, (ctx) => {
+export const logout = spacetimedb.reducer((ctx) => {
   const user = getUserByIdentity(ctx, ctx.sender);
   if (!user) throw new SenderError("Not logged in");
   ctx.db.user.id.update({ ...user, identity: undefined });
 });
 
 export const changePassword = spacetimedb.reducer(
-  "change_password",
   { oldPassword: t.string(), newPassword: t.string() },
   (ctx, { oldPassword, newPassword }) => {
     const user = getUserByIdentity(ctx, ctx.sender);
@@ -279,7 +312,6 @@ export const changePassword = spacetimedb.reducer(
 // --- Boss: Company ---
 
 export const updateCompany = spacetimedb.reducer(
-  "update_company",
   {
     name: t.string(),
     address: t.string(),
@@ -304,7 +336,6 @@ export const updateCompany = spacetimedb.reducer(
 // --- Boss: Field Visibility ---
 
 export const updateFieldVisibility = spacetimedb.reducer(
-  "update_field_visibility",
   {
     companyAddress: t.bool(),
     companyCity: t.bool(),
@@ -323,16 +354,15 @@ export const updateFieldVisibility = spacetimedb.reducer(
   },
   (ctx, args) => {
     assertBoss(ctx);
-    const existing = ctx.db.field_visibility.id.find(1n);
+    const existing = ctx.db.fieldVisibility.id.find(1n);
     if (!existing) throw new SenderError("Field visibility not found");
-    ctx.db.field_visibility.id.update({ ...existing, ...args });
+    ctx.db.fieldVisibility.id.update({ ...existing, ...args });
   },
 );
 
 // --- Boss: Employee Management ---
 
 export const createEmployeeAccount = spacetimedb.reducer(
-  "create_employee_account",
   {
     username: t.string(),
     password: t.string(),
@@ -389,7 +419,6 @@ export const createEmployeeAccount = spacetimedb.reducer(
 );
 
 export const updateEmployee = spacetimedb.reducer(
-  "update_employee",
   {
     empId: t.u64(),
     name: t.string(),
@@ -418,18 +447,22 @@ export const updateEmployee = spacetimedb.reducer(
 );
 
 export const deleteEmployee = spacetimedb.reducer(
-  "delete_employee",
   { empId: t.u64() },
   (ctx, { empId }) => {
     assertBoss(ctx);
     const emp = ctx.db.employee.id.find(empId);
     if (!emp) throw new SenderError("Employee not found");
 
-    // Delete credential
+    // Clean up payslip submissions and signed payslips
+    for (const sub of ctx.db.payslipSubmission.byEmployeeId.filter(empId)) {
+      if (sub.status === "signed") {
+        ctx.db.signedPayslip.submissionId.delete(sub.id);
+      }
+      ctx.db.payslipSubmission.id.delete(sub.id);
+    }
+    // Delete credential, user, employee
     ctx.db.credential.userId.delete(emp.userId);
-    // Delete user
     ctx.db.user.id.delete(emp.userId);
-    // Delete employee
     ctx.db.employee.id.delete(empId);
   },
 );
@@ -437,16 +470,14 @@ export const deleteEmployee = spacetimedb.reducer(
 // --- Boss: Templates ---
 
 export const addEarningsTemplate = spacetimedb.reducer(
-  "add_earnings_template",
   { name: t.string(), defaultAmount: t.u64(), sortOrder: t.u16() },
   (ctx, args) => {
     assertBoss(ctx);
-    ctx.db.earnings_template.insert({ id: 0n, ...args });
+    ctx.db.earningsTemplate.insert({ id: 0n, ...args });
   },
 );
 
 export const updateEarningsTemplate = spacetimedb.reducer(
-  "update_earnings_template",
   {
     templateId: t.u64(),
     name: t.string(),
@@ -455,32 +486,29 @@ export const updateEarningsTemplate = spacetimedb.reducer(
   },
   (ctx, { templateId, ...fields }) => {
     assertBoss(ctx);
-    const existing = ctx.db.earnings_template.id.find(templateId);
+    const existing = ctx.db.earningsTemplate.id.find(templateId);
     if (!existing) throw new SenderError("Template not found");
-    ctx.db.earnings_template.id.update({ ...existing, ...fields });
+    ctx.db.earningsTemplate.id.update({ ...existing, ...fields });
   },
 );
 
 export const deleteEarningsTemplate = spacetimedb.reducer(
-  "delete_earnings_template",
   { templateId: t.u64() },
   (ctx, { templateId }) => {
     assertBoss(ctx);
-    ctx.db.earnings_template.id.delete(templateId);
+    ctx.db.earningsTemplate.id.delete(templateId);
   },
 );
 
 export const addDeductionsTemplate = spacetimedb.reducer(
-  "add_deductions_template",
   { name: t.string(), defaultAmount: t.u64(), sortOrder: t.u16() },
   (ctx, args) => {
     assertBoss(ctx);
-    ctx.db.deductions_template.insert({ id: 0n, ...args });
+    ctx.db.deductionsTemplate.insert({ id: 0n, ...args });
   },
 );
 
 export const updateDeductionsTemplate = spacetimedb.reducer(
-  "update_deductions_template",
   {
     templateId: t.u64(),
     name: t.string(),
@@ -489,40 +517,38 @@ export const updateDeductionsTemplate = spacetimedb.reducer(
   },
   (ctx, { templateId, ...fields }) => {
     assertBoss(ctx);
-    const existing = ctx.db.deductions_template.id.find(templateId);
+    const existing = ctx.db.deductionsTemplate.id.find(templateId);
     if (!existing) throw new SenderError("Template not found");
-    ctx.db.deductions_template.id.update({ ...existing, ...fields });
+    ctx.db.deductionsTemplate.id.update({ ...existing, ...fields });
   },
 );
 
 export const deleteDeductionsTemplate = spacetimedb.reducer(
-  "delete_deductions_template",
   { templateId: t.u64() },
   (ctx, { templateId }) => {
     assertBoss(ctx);
-    ctx.db.deductions_template.id.delete(templateId);
+    ctx.db.deductionsTemplate.id.delete(templateId);
   },
 );
 
 // --- Boss: Payslip signing ---
 
 export const signPayslip = spacetimedb.reducer(
-  "sign_payslip",
   { submissionId: t.u64(), pdfBase64: t.string() },
   (ctx, { submissionId, pdfBase64 }) => {
     assertBoss(ctx);
-    const sub = ctx.db.payslip_submission.id.find(submissionId);
+    const sub = ctx.db.payslipSubmission.id.find(submissionId);
     if (!sub) throw new SenderError("Submission not found");
     if (sub.status !== "submitted")
       throw new SenderError("Can only sign submitted payslips");
 
-    ctx.db.payslip_submission.id.update({
+    ctx.db.payslipSubmission.id.update({
       ...sub,
       status: "signed",
       updatedAt: ctx.timestamp,
     });
 
-    ctx.db.signed_payslip.insert({
+    ctx.db.signedPayslip.insert({
       submissionId,
       pdfBase64,
       signedAt: ctx.timestamp,
@@ -531,16 +557,15 @@ export const signPayslip = spacetimedb.reducer(
 );
 
 export const rejectPayslip = spacetimedb.reducer(
-  "reject_payslip",
   { submissionId: t.u64() },
   (ctx, { submissionId }) => {
     assertBoss(ctx);
-    const sub = ctx.db.payslip_submission.id.find(submissionId);
+    const sub = ctx.db.payslipSubmission.id.find(submissionId);
     if (!sub) throw new SenderError("Submission not found");
     if (sub.status !== "submitted")
       throw new SenderError("Can only reject submitted payslips");
 
-    ctx.db.payslip_submission.id.update({
+    ctx.db.payslipSubmission.id.update({
       ...sub,
       status: "draft",
       updatedAt: ctx.timestamp,
@@ -551,7 +576,6 @@ export const rejectPayslip = spacetimedb.reducer(
 // --- Employee: Profile ---
 
 export const updateMyProfile = spacetimedb.reducer(
-  "update_my_profile",
   {
     uan: t.string(),
     pan: t.string(),
@@ -576,7 +600,6 @@ export const updateMyProfile = spacetimedb.reducer(
 // --- Employee: Payslip Submissions ---
 
 export const submitPayslip = spacetimedb.reducer(
-  "submit_payslip",
   {
     payMonth: t.u8(),
     payYear: t.u16(),
@@ -592,12 +615,11 @@ export const submitPayslip = spacetimedb.reducer(
     amountInWords: t.string(),
   },
   (ctx, args) => {
-    const user = assertEmployee(ctx);
-    if (!user.employeeId) throw new SenderError("No employee profile linked");
+    const user = assertOwnSubmission(ctx);
 
-    ctx.db.payslip_submission.insert({
+    ctx.db.payslipSubmission.insert({
       id: 0n,
-      employeeId: user.employeeId,
+      employeeId: user.employeeId!,
       ...args,
       status: "submitted",
       createdAt: ctx.timestamp,
@@ -607,7 +629,6 @@ export const submitPayslip = spacetimedb.reducer(
 );
 
 export const updateDraft = spacetimedb.reducer(
-  "update_draft",
   {
     submissionId: t.u64(),
     payMonth: t.u8(),
@@ -624,16 +645,10 @@ export const updateDraft = spacetimedb.reducer(
     amountInWords: t.string(),
   },
   (ctx, { submissionId, ...fields }) => {
-    const user = assertEmployee(ctx);
-    if (!user.employeeId) throw new SenderError("No employee profile linked");
-
-    const sub = ctx.db.payslip_submission.id.find(submissionId);
-    if (!sub) throw new SenderError("Submission not found");
-    if (sub.employeeId !== user.employeeId)
-      throw new SenderError("Not your submission");
+    const { sub } = findOwnSubmission(ctx, submissionId);
     if (sub.status !== "draft") throw new SenderError("Can only edit drafts");
 
-    ctx.db.payslip_submission.id.update({
+    ctx.db.payslipSubmission.id.update({
       ...sub,
       ...fields,
       updatedAt: ctx.timestamp,
@@ -642,37 +657,23 @@ export const updateDraft = spacetimedb.reducer(
 );
 
 export const deleteDraft = spacetimedb.reducer(
-  "delete_draft",
   { submissionId: t.u64() },
   (ctx, { submissionId }) => {
-    const user = assertEmployee(ctx);
-    if (!user.employeeId) throw new SenderError("No employee profile linked");
-
-    const sub = ctx.db.payslip_submission.id.find(submissionId);
-    if (!sub) throw new SenderError("Submission not found");
-    if (sub.employeeId !== user.employeeId)
-      throw new SenderError("Not your submission");
+    const { sub } = findOwnSubmission(ctx, submissionId);
     if (sub.status !== "draft") throw new SenderError("Can only delete drafts");
 
-    ctx.db.payslip_submission.id.delete(submissionId);
+    ctx.db.payslipSubmission.id.delete(submissionId);
   },
 );
 
 export const resubmitPayslip = spacetimedb.reducer(
-  "resubmit_payslip",
   { submissionId: t.u64() },
   (ctx, { submissionId }) => {
-    const user = assertEmployee(ctx);
-    if (!user.employeeId) throw new SenderError("No employee profile linked");
-
-    const sub = ctx.db.payslip_submission.id.find(submissionId);
-    if (!sub) throw new SenderError("Submission not found");
-    if (sub.employeeId !== user.employeeId)
-      throw new SenderError("Not your submission");
+    const { sub } = findOwnSubmission(ctx, submissionId);
     if (sub.status !== "draft")
       throw new SenderError("Can only resubmit drafts");
 
-    ctx.db.payslip_submission.id.update({
+    ctx.db.payslipSubmission.id.update({
       ...sub,
       status: "submitted",
       updatedAt: ctx.timestamp,

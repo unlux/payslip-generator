@@ -85,50 +85,39 @@ export default function SubmitPayslipPage() {
   const netPayable = grossEarnings - totalDeductions;
   const amountInWords = amountToWords(netPayable);
 
-  function updateEarning(index: number, field: "name" | "amount", val: string) {
-    const updated = [...earnings];
-    updated[index] = {
-      ...updated[index],
-      [field]: field === "amount" ? parseFloat(val) || 0 : val,
-    };
-    setEarnings(updated);
-  }
-
-  function updateDeduction(
+  function updateItem(
+    list: PayComponent[],
+    setList: (v: PayComponent[]) => void,
     index: number,
     field: "name" | "amount",
     val: string,
   ) {
-    const updated = [...deductions];
+    const updated = [...list];
     updated[index] = {
       ...updated[index],
       [field]: field === "amount" ? parseFloat(val) || 0 : val,
     };
-    setDeductions(updated);
+    setList(updated);
   }
 
-  function addEarning() {
-    if (earnings.length >= LIMITS.MAX_PAY_COMPONENTS) {
-      toast.error(`Maximum ${LIMITS.MAX_PAY_COMPONENTS} earnings allowed`);
+  function addItem(
+    list: PayComponent[],
+    setList: (v: PayComponent[]) => void,
+    label: string,
+  ) {
+    if (list.length >= LIMITS.MAX_PAY_COMPONENTS) {
+      toast.error(`Maximum ${LIMITS.MAX_PAY_COMPONENTS} ${label} allowed`);
       return;
     }
-    setEarnings([...earnings, { name: "", amount: 0 }]);
+    setList([...list, { name: "", amount: 0 }]);
   }
 
-  function addDeduction() {
-    if (deductions.length >= LIMITS.MAX_PAY_COMPONENTS) {
-      toast.error(`Maximum ${LIMITS.MAX_PAY_COMPONENTS} deductions allowed`);
-      return;
-    }
-    setDeductions([...deductions, { name: "", amount: 0 }]);
-  }
-
-  function removeEarning(index: number) {
-    setEarnings(earnings.filter((_, i) => i !== index));
-  }
-
-  function removeDeduction(index: number) {
-    setDeductions(deductions.filter((_, i) => i !== index));
+  function removeItem(
+    list: PayComponent[],
+    setList: (v: PayComponent[]) => void,
+    index: number,
+  ) {
+    setList(list.filter((_, i) => i !== index));
   }
 
   const handleSubmit = useCallback(() => {
@@ -138,8 +127,9 @@ export default function SubmitPayslipPage() {
       return;
     }
 
+    if (!conn) return;
     try {
-      conn?.reducers.submitPayslip({
+      conn.reducers.submitPayslip({
         payMonth,
         payYear,
         paidDays,
@@ -158,7 +148,9 @@ export default function SubmitPayslipPage() {
       toast.success("Payslip submitted");
       router.push("/employee");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to submit payslip");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to submit payslip",
+      );
     }
   }, [
     conn,
@@ -272,7 +264,11 @@ export default function SubmitPayslipPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Earnings</CardTitle>
-            <Button variant="outline" size="sm" onClick={addEarning}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => addItem(earnings, setEarnings, "earnings")}
+            >
               <Plus className="mr-1 size-4" />
               Add
             </Button>
@@ -284,7 +280,15 @@ export default function SubmitPayslipPage() {
                   {i === 0 && <Label className="text-xs">Component</Label>}
                   <Input
                     value={e.name}
-                    onChange={(ev) => updateEarning(i, "name", ev.target.value)}
+                    onChange={(ev) =>
+                      updateItem(
+                        earnings,
+                        setEarnings,
+                        i,
+                        "name",
+                        ev.target.value,
+                      )
+                    }
                     placeholder="Component name"
                   />
                 </div>
@@ -298,7 +302,13 @@ export default function SubmitPayslipPage() {
                     step="0.01"
                     value={e.amount || ""}
                     onChange={(ev) =>
-                      updateEarning(i, "amount", ev.target.value)
+                      updateItem(
+                        earnings,
+                        setEarnings,
+                        i,
+                        "amount",
+                        ev.target.value,
+                      )
                     }
                     placeholder="0.00"
                   />
@@ -307,7 +317,7 @@ export default function SubmitPayslipPage() {
                   variant="ghost"
                   size="icon"
                   className="text-destructive hover:text-destructive"
-                  onClick={() => removeEarning(i)}
+                  onClick={() => removeItem(earnings, setEarnings, i)}
                 >
                   <X className="size-4" />
                 </Button>
@@ -324,7 +334,11 @@ export default function SubmitPayslipPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Deductions</CardTitle>
-            <Button variant="outline" size="sm" onClick={addDeduction}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => addItem(deductions, setDeductions, "deductions")}
+            >
               <Plus className="mr-1 size-4" />
               Add
             </Button>
@@ -337,7 +351,13 @@ export default function SubmitPayslipPage() {
                   <Input
                     value={d.name}
                     onChange={(ev) =>
-                      updateDeduction(i, "name", ev.target.value)
+                      updateItem(
+                        deductions,
+                        setDeductions,
+                        i,
+                        "name",
+                        ev.target.value,
+                      )
                     }
                     placeholder="Component name"
                   />
@@ -352,7 +372,13 @@ export default function SubmitPayslipPage() {
                     step="0.01"
                     value={d.amount || ""}
                     onChange={(ev) =>
-                      updateDeduction(i, "amount", ev.target.value)
+                      updateItem(
+                        deductions,
+                        setDeductions,
+                        i,
+                        "amount",
+                        ev.target.value,
+                      )
                     }
                     placeholder="0.00"
                   />
@@ -361,7 +387,7 @@ export default function SubmitPayslipPage() {
                   variant="ghost"
                   size="icon"
                   className="text-destructive hover:text-destructive"
-                  onClick={() => removeDeduction(i)}
+                  onClick={() => removeItem(deductions, setDeductions, i)}
                 >
                   <X className="size-4" />
                 </Button>

@@ -16,6 +16,7 @@ import {
 import { useStdb } from "@/providers/spacetimedb-provider";
 import { getCurrencySymbol } from "@/lib/currencies";
 import { MONTHS, SIGNATURE_KEY } from "@/lib/constants";
+import { downloadBase64Pdf } from "@/lib/pdf-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,7 +30,12 @@ export default function PayslipReviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const submissionId = BigInt(id);
+  let submissionId: bigint | undefined;
+  try {
+    submissionId = BigInt(id);
+  } catch {
+    // invalid URL param
+  }
   const submission = usePayslipSubmission(submissionId);
   const employee = useEmployee(submission?.employeeId);
   const company = useCompany();
@@ -112,13 +118,15 @@ export default function PayslipReviewPage({
         await import("@/components/pdf/payslip-document");
       const blob = await pdf(<PayslipDocument {...props} />).toBlob();
 
-      const buffer = await blob.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const base64str = btoa(binary);
+      const reader = new FileReader();
+      const base64str = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",", 2)[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
 
       conn.reducers.signPayslip({
         submissionId: submission.id,
@@ -149,24 +157,16 @@ export default function PayslipReviewPage({
   function handleDownload() {
     if (!signedPayslip || !submission || !employee) return;
     try {
-      const binary = atob(signedPayslip.pdfBase64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `payslip-${employee.name}-${submission.payMonth}-${submission.payYear}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBase64Pdf(
+        signedPayslip.pdfBase64,
+        `payslip-${employee.name}-${submission.payMonth}-${submission.payYear}.pdf`,
+      );
     } catch {
       toast.error("Failed to download PDF");
     }
   }
 
-  if (!submission) {
+  if (!submissionId || !submission) {
     return (
       <div className="container mx-auto px-4 py-6">
         <p className="text-muted-foreground">Payslip not found</p>

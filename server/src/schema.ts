@@ -45,6 +45,7 @@ const employee = table(
     public: true,
     indexes: [
       {
+        accessor: "byUserId",
         name: "employee_user",
         algorithm: "btree" as const,
         columns: ["userId"],
@@ -72,11 +73,13 @@ const payslipSubmission = table(
     public: true,
     indexes: [
       {
+        accessor: "byEmployeeId",
         name: "payslip_employee",
         algorithm: "btree" as const,
         columns: ["employeeId"],
       },
       {
+        accessor: "byStatus",
         name: "payslip_status",
         algorithm: "btree" as const,
         columns: ["status"],
@@ -154,7 +157,7 @@ const deductionsTemplate = table(
   },
 );
 
-const spacetimedb = schema(
+const spacetimedb = schema({
   credential,
   user,
   company,
@@ -164,6 +167,6 @@ const spacetimedb = schema(
   fieldVisibility,
   earningsTemplate,
   deductionsTemplate,
-);
+});
 
 export default spacetimedb;

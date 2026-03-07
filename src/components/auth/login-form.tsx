@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/providers/auth-provider";
@@ -19,7 +19,8 @@ import { toast } from "sonner";
 
 export function LoginForm() {
   const { login } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -29,17 +30,33 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
-    setLoading(true);
-    try {
-      await login(data.username, data.password);
-      toast.success("Logged in successfully");
-    } catch {
-      toast.error("Invalid username or password");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Timeout: if login doesn't resolve within 3s, assume failure
+  useEffect(() => {
+    if (!pending) return;
+    const timer = setTimeout(() => {
+      setPending(false);
+      setError("Invalid username or password");
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [pending]);
+
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
+
+  const onSubmit = useCallback(
+    async (data: LoginFormValues) => {
+      setPending(true);
+      setError(null);
+      try {
+        await login(data.username, data.password);
+      } catch {
+        setPending(false);
+        setError("Failed to connect to server");
+      }
+    },
+    [login],
+  );
 
   return (
     <Card className="w-full max-w-sm">
@@ -78,10 +95,34 @@ export function LoginForm() {
               </p>
             )}
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+          <Button type="submit" className="w-full" disabled={pending}>
+            {pending ? "Signing in..." : "Sign In"}
           </Button>
         </form>
+        {process.env.NODE_ENV === "development" && (
+          <div className="mt-4 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              disabled={pending}
+              onClick={() => onSubmit({ username: "admin", password: "admin" })}
+            >
+              Admin
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              disabled={pending}
+              onClick={() =>
+                onSubmit({ username: "lakshay", password: "87651234" })
+              }
+            >
+              Lakshay
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
