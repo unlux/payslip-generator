@@ -40,13 +40,13 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { isConnected, identity, isSubscriptionReady, subscribeAll } =
     useStdb();
-  const { conn, revision } = useRevision("user");
+  const { conn, revision } = useRevision("usersView");
 
   const user = useMemo<DbUser | null>(() => {
     if (!conn || !identity || !isSubscriptionReady) return null;
     try {
       const identityHex = identity.toHexString();
-      for (const u of conn.db.user.iter()) {
+      for (const u of conn.db.usersView.iter()) {
         if (u.identity && u.identity.toHexString() === identityHex) {
           return u as DbUser;
         }

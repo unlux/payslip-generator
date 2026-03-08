@@ -55,16 +55,17 @@ function useTableRows<T>(tableName: string): T[] {
 }
 
 export function useUsers(): DbUser[] {
-  return useTableRows<DbUser>("user");
+  return useTableRows<DbUser>("usersView");
 }
 
 export function useCompany(): DbCompany | null {
-  const { conn, isSubscriptionReady, revision } = useRevision("company");
+  const { conn, isSubscriptionReady, revision } = useRevision("companyView");
 
   return useMemo(() => {
     if (!conn || !isSubscriptionReady) return null;
     try {
-      return conn.db.company.id.find(1n) ?? null;
+      const rows = [...conn.db.companyView.iter()];
+      return rows.length > 0 ? (rows[0] as DbCompany) : null;
     } catch (err) {
       console.error("useCompany:", err);
       return null;
@@ -74,16 +75,19 @@ export function useCompany(): DbCompany | null {
 }
 
 export function useEmployees(): DbEmployee[] {
-  return useTableRows<DbEmployee>("employee");
+  return useTableRows<DbEmployee>("employeesView");
 }
 
 export function useEmployee(id: bigint | undefined): DbEmployee | null {
-  const { conn, isSubscriptionReady, revision } = useRevision("employee");
+  const { conn, isSubscriptionReady, revision } = useRevision("employeesView");
 
   return useMemo(() => {
     if (id === undefined || !conn || !isSubscriptionReady) return null;
     try {
-      return conn.db.employee.id.find(id) ?? null;
+      for (const emp of conn.db.employeesView.iter()) {
+        if (emp.id === id) return emp as DbEmployee;
+      }
+      return null;
     } catch (err) {
       console.error("useEmployee:", err);
       return null;
@@ -93,7 +97,7 @@ export function useEmployee(id: bigint | undefined): DbEmployee | null {
 }
 
 export function usePayslipSubmissions(): DbPayslipSubmission[] {
-  return useTableRows<DbPayslipSubmission>("payslipSubmission");
+  return useTableRows<DbPayslipSubmission>("submissionsView");
 }
 
 export function useMyPayslipSubmissions(
@@ -110,12 +114,15 @@ export function usePayslipSubmission(
   id: bigint | undefined,
 ): DbPayslipSubmission | null {
   const { conn, isSubscriptionReady, revision } =
-    useRevision("payslipSubmission");
+    useRevision("submissionsView");
 
   return useMemo(() => {
     if (id === undefined || !conn || !isSubscriptionReady) return null;
     try {
-      return conn.db.payslipSubmission.id.find(id) ?? null;
+      for (const sub of conn.db.submissionsView.iter()) {
+        if (sub.id === id) return sub as DbPayslipSubmission;
+      }
+      return null;
     } catch (err) {
       console.error("usePayslipSubmission:", err);
       return null;
@@ -125,16 +132,16 @@ export function usePayslipSubmission(
 }
 
 export function useFieldVisibility(): FieldVisibilitySettings {
-  const { conn, isSubscriptionReady, revision } =
-    useRevision("fieldVisibility");
+  const { conn, isSubscriptionReady, revision } = useRevision(
+    "fieldVisibilityView",
+  );
 
   return useMemo(() => {
     if (!conn || !isSubscriptionReady) return DEFAULT_FIELD_VISIBILITY;
     try {
-      const row = conn.db.fieldVisibility.id.find(1n) as
-        | DbFieldVisibility
-        | undefined;
-      if (!row) return DEFAULT_FIELD_VISIBILITY;
+      const rows = [...conn.db.fieldVisibilityView.iter()];
+      if (rows.length === 0) return DEFAULT_FIELD_VISIBILITY;
+      const row = rows[0] as DbFieldVisibility;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id: _id, ...settings } = row;
       return settings;
@@ -147,7 +154,7 @@ export function useFieldVisibility(): FieldVisibilitySettings {
 }
 
 export function useEarningsTemplates(): DbEarningsTemplate[] {
-  const rows = useTableRows<DbEarningsTemplate>("earningsTemplate");
+  const rows = useTableRows<DbEarningsTemplate>("earningsTemplatesView");
   return useMemo(
     () => [...rows].sort((a, b) => a.sortOrder - b.sortOrder),
     [rows],
@@ -155,7 +162,7 @@ export function useEarningsTemplates(): DbEarningsTemplate[] {
 }
 
 export function useDeductionsTemplates(): DbDeductionsTemplate[] {
-  const rows = useTableRows<DbDeductionsTemplate>("deductionsTemplate");
+  const rows = useTableRows<DbDeductionsTemplate>("deductionsTemplatesView");
   return useMemo(
     () => [...rows].sort((a, b) => a.sortOrder - b.sortOrder),
     [rows],
@@ -165,13 +172,17 @@ export function useDeductionsTemplates(): DbDeductionsTemplate[] {
 export function useSignedPayslip(
   submissionId: bigint | undefined,
 ): DbSignedPayslip | null {
-  const { conn, isSubscriptionReady, revision } = useRevision("signedPayslip");
+  const { conn, isSubscriptionReady, revision } =
+    useRevision("signedPayslipsView");
 
   return useMemo(() => {
     if (submissionId === undefined || !conn || !isSubscriptionReady)
       return null;
     try {
-      return conn.db.signedPayslip.submissionId.find(submissionId) ?? null;
+      for (const sp of conn.db.signedPayslipsView.iter()) {
+        if (sp.submissionId === submissionId) return sp as DbSignedPayslip;
+      }
+      return null;
     } catch (err) {
       console.error("useSignedPayslip:", err);
       return null;

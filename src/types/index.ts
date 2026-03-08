@@ -87,6 +87,7 @@ export interface DbPayslipSubmission {
 
 export interface DbSignedPayslip {
   submissionId: bigint;
+  employeeId: bigint;
   pdfBase64: string;
   signedAt: { microsSinceUnixEpoch: bigint };
 }

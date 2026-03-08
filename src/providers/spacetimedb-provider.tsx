@@ -74,7 +74,7 @@ export function StdbProvider({ children }: { children: ReactNode }) {
               .onApplied(() => {
                 if (!cancelled) setIsSubscriptionReady(true);
               })
-              .subscribe(["SELECT * FROM user"]);
+              .subscribe(["SELECT * FROM users_view"]);
           })
           .onDisconnect(() => {
             if (cancelled) return;
@@ -118,13 +118,13 @@ export function StdbProvider({ children }: { children: ReactNode }) {
     conn
       .subscriptionBuilder()
       .subscribe([
-        "SELECT * FROM company",
-        "SELECT * FROM employee",
-        "SELECT * FROM payslip_submission",
-        "SELECT * FROM signed_payslip",
-        "SELECT * FROM field_visibility",
-        "SELECT * FROM earnings_template",
-        "SELECT * FROM deductions_template",
+        "SELECT * FROM company_view",
+        "SELECT * FROM employees_view",
+        "SELECT * FROM submissions_view",
+        "SELECT * FROM signed_payslips_view",
+        "SELECT * FROM field_visibility_view",
+        "SELECT * FROM earnings_templates_view",
+        "SELECT * FROM deductions_templates_view",
       ]);
   }, [conn]);
 

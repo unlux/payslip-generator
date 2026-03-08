@@ -10,9 +10,25 @@ const credential = table(
   },
 );
 
-// PUBLIC -- clients can subscribe
+// PRIVATE -- exposed via views
 const user = table(
-  { name: "user", public: true },
+  {
+    name: "user",
+    indexes: [
+      {
+        accessor: "byIdentity",
+        name: "user_identity",
+        algorithm: "btree" as const,
+        columns: ["identity"],
+      },
+      {
+        accessor: "byRole",
+        name: "user_role",
+        algorithm: "btree" as const,
+        columns: ["role"],
+      },
+    ],
+  },
   {
     id: t.u64().primaryKey().autoInc(),
     username: t.string().unique(),
@@ -25,7 +41,7 @@ const user = table(
 );
 
 const company = table(
-  { name: "company", public: true },
+  { name: "company" },
   {
     id: t.u64().primaryKey(), // singleton, always 1n
     name: t.string(),
@@ -42,7 +58,6 @@ const company = table(
 const employee = table(
   {
     name: "employee",
-    public: true,
     indexes: [
       {
         accessor: "byUserId",
@@ -67,7 +82,6 @@ const employee = table(
 const payslipSubmission = table(
   {
     name: "payslip_submission",
-    public: true,
     indexes: [
       {
         accessor: "byEmployeeId",
@@ -105,16 +119,27 @@ const payslipSubmission = table(
 );
 
 const signedPayslip = table(
-  { name: "signed_payslip", public: true },
+  {
+    name: "signed_payslip",
+    indexes: [
+      {
+        accessor: "byEmployeeId",
+        name: "signed_payslip_employee",
+        algorithm: "btree" as const,
+        columns: ["employeeId"],
+      },
+    ],
+  },
   {
     submissionId: t.u64().primaryKey(),
+    employeeId: t.u64(),
     pdfBase64: t.string(),
     signedAt: t.timestamp(),
   },
 );
 
 const fieldVisibility = table(
-  { name: "field_visibility", public: true },
+  { name: "field_visibility" },
   {
     id: t.u64().primaryKey(), // singleton, always 1n
     companyAddress: t.bool(),
@@ -132,22 +157,44 @@ const fieldVisibility = table(
 );
 
 const earningsTemplate = table(
-  { name: "earnings_template", public: true },
+  {
+    name: "earnings_template",
+    indexes: [
+      {
+        accessor: "byPartition",
+        name: "earnings_template_partition",
+        algorithm: "btree" as const,
+        columns: ["_p"],
+      },
+    ],
+  },
   {
     id: t.u64().primaryKey().autoInc(),
     name: t.string(),
     defaultAmount: t.u64(),
     sortOrder: t.u16(),
+    _p: t.u8(), // sentinel for view "get all" (always 0)
   },
 );
 
 const deductionsTemplate = table(
-  { name: "deductions_template", public: true },
+  {
+    name: "deductions_template",
+    indexes: [
+      {
+        accessor: "byPartition",
+        name: "deductions_template_partition",
+        algorithm: "btree" as const,
+        columns: ["_p"],
+      },
+    ],
+  },
   {
     id: t.u64().primaryKey().autoInc(),
     name: t.string(),
     defaultAmount: t.u64(),
     sortOrder: t.u16(),
+    _p: t.u8(), // sentinel for view "get all" (always 0)
   },
 );
 
@@ -162,5 +209,16 @@ const spacetimedb = schema({
   earningsTemplate,
   deductionsTemplate,
 });
+
+export {
+  user,
+  company,
+  employee,
+  payslipSubmission,
+  signedPayslip,
+  fieldVisibility,
+  earningsTemplate,
+  deductionsTemplate,
+};
 
 export default spacetimedb;

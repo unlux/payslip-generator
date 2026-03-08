@@ -59,120 +59,75 @@ import UpdateMyProfileReducer from "./update_my_profile_reducer";
 // Import all procedure arg schemas
 
 // Import all table schema definitions
-import CompanyRow from "./company_table";
-import DeductionsTemplateRow from "./deductions_template_table";
-import EarningsTemplateRow from "./earnings_template_table";
-import EmployeeRow from "./employee_table";
-import FieldVisibilityRow from "./field_visibility_table";
-import PayslipSubmissionRow from "./payslip_submission_table";
-import SignedPayslipRow from "./signed_payslip_table";
-import UserRow from "./user_table";
+import CompanyViewRow from "./company_view_table";
+import DeductionsTemplatesViewRow from "./deductions_templates_view_table";
+import EarningsTemplatesViewRow from "./earnings_templates_view_table";
+import EmployeesViewRow from "./employees_view_table";
+import FieldVisibilityViewRow from "./field_visibility_view_table";
+import SignedPayslipsViewRow from "./signed_payslips_view_table";
+import SubmissionsViewRow from "./submissions_view_table";
+import UsersViewRow from "./users_view_table";
 
 /** Type-only namespace exports for generated type groups. */
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
-  company: __table({
-    name: 'company',
+  companyView: __table({
+    name: 'company_view',
     indexes: [
-      { name: 'id', algorithm: 'btree', columns: [
-        'id',
-      ] },
     ],
     constraints: [
-      { name: 'company_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, CompanyRow),
-  deductionsTemplate: __table({
-    name: 'deductions_template',
+  }, CompanyViewRow),
+  deductionsTemplatesView: __table({
+    name: 'deductions_templates_view',
     indexes: [
-      { name: 'id', algorithm: 'btree', columns: [
-        'id',
-      ] },
     ],
     constraints: [
-      { name: 'deductions_template_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, DeductionsTemplateRow),
-  earningsTemplate: __table({
-    name: 'earnings_template',
+  }, DeductionsTemplatesViewRow),
+  earningsTemplatesView: __table({
+    name: 'earnings_templates_view',
     indexes: [
-      { name: 'id', algorithm: 'btree', columns: [
-        'id',
-      ] },
     ],
     constraints: [
-      { name: 'earnings_template_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, EarningsTemplateRow),
-  employee: __table({
-    name: 'employee',
+  }, EarningsTemplatesViewRow),
+  employeesView: __table({
+    name: 'employees_view',
     indexes: [
-      { name: 'id', algorithm: 'btree', columns: [
-        'id',
-      ] },
-      { name: 'byUserId', algorithm: 'btree', columns: [
-        'userId',
-      ] },
     ],
     constraints: [
-      { name: 'employee_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, EmployeeRow),
-  fieldVisibility: __table({
-    name: 'field_visibility',
+  }, EmployeesViewRow),
+  fieldVisibilityView: __table({
+    name: 'field_visibility_view',
     indexes: [
-      { name: 'id', algorithm: 'btree', columns: [
-        'id',
-      ] },
     ],
     constraints: [
-      { name: 'field_visibility_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, FieldVisibilityRow),
-  payslipSubmission: __table({
-    name: 'payslip_submission',
+  }, FieldVisibilityViewRow),
+  signedPayslipsView: __table({
+    name: 'signed_payslips_view',
     indexes: [
-      { name: 'byEmployeeId', algorithm: 'btree', columns: [
-        'employeeId',
-      ] },
-      { name: 'id', algorithm: 'btree', columns: [
-        'id',
-      ] },
-      { name: 'byStatus', algorithm: 'btree', columns: [
-        'status',
-      ] },
     ],
     constraints: [
-      { name: 'payslip_submission_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, PayslipSubmissionRow),
-  signedPayslip: __table({
-    name: 'signed_payslip',
+  }, SignedPayslipsViewRow),
+  submissionsView: __table({
+    name: 'submissions_view',
     indexes: [
-      { name: 'submissionId', algorithm: 'btree', columns: [
-        'submissionId',
-      ] },
     ],
     constraints: [
-      { name: 'signed_payslip_submission_id_key', constraint: 'unique', columns: ['submissionId'] },
     ],
-  }, SignedPayslipRow),
-  user: __table({
-    name: 'user',
+  }, SubmissionsViewRow),
+  usersView: __table({
+    name: 'users_view',
     indexes: [
-      { name: 'id', algorithm: 'btree', columns: [
-        'id',
-      ] },
-      { name: 'username', algorithm: 'btree', columns: [
-        'username',
-      ] },
     ],
     constraints: [
-      { name: 'user_id_key', constraint: 'unique', columns: ['id'] },
-      { name: 'user_username_key', constraint: 'unique', columns: ['username'] },
     ],
-  }, UserRow),
+  }, UsersViewRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */

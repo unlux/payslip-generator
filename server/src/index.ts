@@ -1,4 +1,13 @@
-import spacetimedb from "./schema";
+import spacetimedb, {
+  user,
+  company,
+  employee,
+  payslipSubmission,
+  signedPayslip,
+  fieldVisibility,
+  earningsTemplate,
+  deductionsTemplate,
+} from "./schema";
 import { t, SenderError } from "spacetimedb/server";
 export default spacetimedb;
 
@@ -141,9 +150,9 @@ function generateSalt(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getUserByIdentity(ctx: any, sender: any) {
-  const senderHex = sender.toHexString();
-  for (const u of ctx.db.user.iter()) {
-    if (u.identity && u.identity.toHexString() === senderHex) return u;
+  // Use btree index on identity for efficient lookup
+  for (const u of ctx.db.user.byIdentity.filter(sender)) {
+    return u;
   }
   return undefined;
 }
@@ -242,6 +251,7 @@ export const init = spacetimedb.init((ctx) => {
     name: "Base Pay",
     defaultAmount: 0n,
     sortOrder: 0,
+    _p: 0,
   });
 
   console.info("Database initialized with default boss account and company");
@@ -461,7 +471,7 @@ export const addEarningsTemplate = spacetimedb.reducer(
   { name: t.string(), defaultAmount: t.u64(), sortOrder: t.u16() },
   (ctx, args) => {
     assertBoss(ctx);
-    ctx.db.earningsTemplate.insert({ id: 0n, ...args });
+    ctx.db.earningsTemplate.insert({ id: 0n, ...args, _p: 0 });
   },
 );
 
@@ -492,7 +502,7 @@ export const addDeductionsTemplate = spacetimedb.reducer(
   { name: t.string(), defaultAmount: t.u64(), sortOrder: t.u16() },
   (ctx, args) => {
     assertBoss(ctx);
-    ctx.db.deductionsTemplate.insert({ id: 0n, ...args });
+    ctx.db.deductionsTemplate.insert({ id: 0n, ...args, _p: 0 });
   },
 );
 
@@ -538,6 +548,7 @@ export const signPayslip = spacetimedb.reducer(
 
     ctx.db.signedPayslip.insert({
       submissionId,
+      employeeId: sub.employeeId,
       pdfBase64,
       signedAt: ctx.timestamp,
     });
@@ -664,5 +675,137 @@ export const resubmitPayslip = spacetimedb.reducer(
       status: "submitted",
       updatedAt: ctx.timestamp,
     });
+  },
+);
+
+// --- Views (identity-aware, all tables private) ---
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function resolveViewUser(ctx: any) {
+  for (const u of ctx.db.user.byIdentity.filter(ctx.sender)) {
+    return u;
+  }
+  return undefined;
+}
+
+export const usersView = spacetimedb.view(
+  { name: "users_view", public: true },
+  t.array(user.rowType),
+  (ctx) => {
+    const me = resolveViewUser(ctx);
+    if (!me) return [];
+    if (me.role === "boss") {
+      return [
+        ...ctx.db.user.byRole.filter("boss"),
+        ...ctx.db.user.byRole.filter("employee"),
+      ];
+    }
+    return [me];
+  },
+);
+
+export const employeesView = spacetimedb.view(
+  { name: "employees_view", public: true },
+  t.array(employee.rowType),
+  (ctx) => {
+    const me = resolveViewUser(ctx);
+    if (!me) return [];
+    if (me.role === "boss") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any[] = [];
+      for (const u of ctx.db.user.byRole.filter("employee")) {
+        if (u.employeeId) {
+          const emp = ctx.db.employee.id.find(u.employeeId);
+          if (emp) result.push(emp);
+        }
+      }
+      return result;
+    }
+    if (!me.employeeId) return [];
+    const emp = ctx.db.employee.id.find(me.employeeId);
+    return emp ? [emp] : [];
+  },
+);
+
+export const submissionsView = spacetimedb.view(
+  { name: "submissions_view", public: true },
+  t.array(payslipSubmission.rowType),
+  (ctx) => {
+    const me = resolveViewUser(ctx);
+    if (!me) return [];
+    if (me.role === "boss") {
+      return [
+        ...ctx.db.payslipSubmission.byStatus.filter("draft"),
+        ...ctx.db.payslipSubmission.byStatus.filter("submitted"),
+        ...ctx.db.payslipSubmission.byStatus.filter("signed"),
+      ];
+    }
+    if (!me.employeeId) return [];
+    return [...ctx.db.payslipSubmission.byEmployeeId.filter(me.employeeId)];
+  },
+);
+
+export const signedPayslipsView = spacetimedb.view(
+  { name: "signed_payslips_view", public: true },
+  t.array(signedPayslip.rowType),
+  (ctx) => {
+    const me = resolveViewUser(ctx);
+    if (!me) return [];
+    if (me.role === "boss") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any[] = [];
+      for (const u of ctx.db.user.byRole.filter("employee")) {
+        if (u.employeeId) {
+          for (const sp of ctx.db.signedPayslip.byEmployeeId.filter(
+            u.employeeId,
+          )) {
+            result.push(sp);
+          }
+        }
+      }
+      return result;
+    }
+    if (!me.employeeId) return [];
+    return [...ctx.db.signedPayslip.byEmployeeId.filter(me.employeeId)];
+  },
+);
+
+export const companyView = spacetimedb.view(
+  { name: "company_view", public: true },
+  t.option(company.rowType),
+  (ctx) => {
+    const me = resolveViewUser(ctx);
+    if (!me) return undefined;
+    return ctx.db.company.id.find(1n) ?? undefined;
+  },
+);
+
+export const fieldVisibilityView = spacetimedb.view(
+  { name: "field_visibility_view", public: true },
+  t.option(fieldVisibility.rowType),
+  (ctx) => {
+    const me = resolveViewUser(ctx);
+    if (!me) return undefined;
+    return ctx.db.fieldVisibility.id.find(1n) ?? undefined;
+  },
+);
+
+export const earningsTemplatesView = spacetimedb.view(
+  { name: "earnings_templates_view", public: true },
+  t.array(earningsTemplate.rowType),
+  (ctx) => {
+    const me = resolveViewUser(ctx);
+    if (!me) return [];
+    return [...ctx.db.earningsTemplate.byPartition.filter(0)];
+  },
+);
+
+export const deductionsTemplatesView = spacetimedb.view(
+  { name: "deductions_templates_view", public: true },
+  t.array(deductionsTemplate.rowType),
+  (ctx) => {
+    const me = resolveViewUser(ctx);
+    if (!me) return [];
+    return [...ctx.db.deductionsTemplate.byPartition.filter(0)];
   },
 );
