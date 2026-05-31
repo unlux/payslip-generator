@@ -3,6 +3,7 @@ import spacetimedb, {
   company,
   employee,
   payslipSubmission,
+  hiddenPayslip,
   signedPayslip,
   fieldVisibility,
   earningsTemplate,
@@ -193,6 +194,42 @@ function findOwnSubmission(ctx: any, submissionId: bigint) {
   if (sub.employeeId !== user.employeeId)
     throw new SenderError("Not your submission");
   return { user, sub };
+}
+
+type VisibilityAction = "hide" | "restore";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findSubmissionForVisibilityChange(ctx: any, submissionId: bigint) {
+  const user = getUserByIdentity(ctx, ctx.sender);
+  if (!user) throw new SenderError("Not logged in");
+
+  const sub = ctx.db.payslipSubmission.id.find(submissionId);
+  if (!sub) throw new SenderError("Submission not found");
+
+  if (user.role === "boss") return { user, sub };
+  if (user.role === "employee" && user.employeeId === sub.employeeId) {
+    return { user, sub };
+  }
+
+  throw new SenderError("Not your submission");
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function recordPayslipVisibilityEvent(
+  ctx: any,
+  submissionId: bigint,
+  actorUserId: bigint,
+  action: VisibilityAction,
+  reason: string,
+) {
+  ctx.db.payslipVisibilityEvent.insert({
+    id: 0n,
+    submissionId,
+    actorUserId,
+    action,
+    reason,
+    createdAt: ctx.timestamp,
+  });
 }
 
 // --- Lifecycle ---
@@ -456,6 +493,12 @@ export const deleteEmployee = spacetimedb.reducer(
       if (sub.status === "signed") {
         ctx.db.signedPayslip.submissionId.delete(sub.id);
       }
+      ctx.db.hiddenPayslip.submissionId.delete(sub.id);
+      for (const event of ctx.db.payslipVisibilityEvent.bySubmissionId.filter(
+        sub.id,
+      )) {
+        ctx.db.payslipVisibilityEvent.id.delete(event.id);
+      }
       ctx.db.payslipSubmission.id.delete(sub.id);
     }
     // Delete credential, user, employee
@@ -569,6 +612,52 @@ export const rejectPayslip = spacetimedb.reducer(
       status: "draft",
       updatedAt: ctx.timestamp,
     });
+  },
+);
+
+export const hidePayslip = spacetimedb.reducer(
+  { submissionId: t.u64(), reason: t.string() },
+  (ctx, { submissionId, reason }) => {
+    const { user, sub } = findSubmissionForVisibilityChange(ctx, submissionId);
+    const trimmedReason = reason.trim();
+
+    if (sub.status !== "signed")
+      throw new SenderError("Can only hide signed payslips");
+    if (ctx.db.hiddenPayslip.submissionId.find(sub.id)) {
+      throw new SenderError("Payslip is already hidden");
+    }
+    if (trimmedReason.length < 3 || trimmedReason.length > 250) {
+      throw new SenderError("Reason must be between 3 and 250 characters");
+    }
+
+    ctx.db.hiddenPayslip.insert({
+      submissionId: sub.id,
+      employeeId: sub.employeeId,
+      reason: trimmedReason,
+      hiddenByUserId: user.id,
+      hiddenAt: ctx.timestamp,
+    });
+
+    recordPayslipVisibilityEvent(
+      ctx,
+      sub.id,
+      user.id,
+      "hide",
+      trimmedReason,
+    );
+  },
+);
+
+export const restorePayslip = spacetimedb.reducer(
+  { submissionId: t.u64() },
+  (ctx, { submissionId }) => {
+    const { user, sub } = findSubmissionForVisibilityChange(ctx, submissionId);
+    const hidden = ctx.db.hiddenPayslip.submissionId.find(sub.id);
+
+    if (!hidden) throw new SenderError("Payslip is not hidden");
+
+    ctx.db.hiddenPayslip.submissionId.delete(sub.id);
+    recordPayslipVisibilityEvent(ctx, sub.id, user.id, "restore", "");
   },
 );
 
@@ -742,6 +831,31 @@ export const submissionsView = spacetimedb.view(
     }
     if (!me.employeeId) return [];
     return [...ctx.db.payslipSubmission.byEmployeeId.filter(me.employeeId)];
+  },
+);
+
+export const hiddenPayslipsView = spacetimedb.view(
+  { name: "hidden_payslips_view", public: true },
+  t.array(hiddenPayslip.rowType),
+  (ctx) => {
+    const me = resolveViewUser(ctx);
+    if (!me) return [];
+    if (me.role === "boss") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any[] = [];
+      for (const u of ctx.db.user.byRole.filter("employee")) {
+        if (u.employeeId) {
+          for (const hidden of ctx.db.hiddenPayslip.byEmployeeId.filter(
+            u.employeeId,
+          )) {
+            result.push(hidden);
+          }
+        }
+      }
+      return result;
+    }
+    if (!me.employeeId) return [];
+    return [...ctx.db.hiddenPayslip.byEmployeeId.filter(me.employeeId)];
   },
 );
 

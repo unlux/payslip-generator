@@ -121,6 +121,7 @@ export function StdbProvider({ children }: { children: ReactNode }) {
         "SELECT * FROM company_view",
         "SELECT * FROM employees_view",
         "SELECT * FROM submissions_view",
+        "SELECT * FROM hidden_payslips_view",
         "SELECT * FROM signed_payslips_view",
         "SELECT * FROM field_visibility_view",
         "SELECT * FROM earnings_templates_view",

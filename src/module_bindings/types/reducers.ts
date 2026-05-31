@@ -14,9 +14,11 @@ import DeleteDeductionsTemplateReducer from "../delete_deductions_template_reduc
 import DeleteDraftReducer from "../delete_draft_reducer";
 import DeleteEarningsTemplateReducer from "../delete_earnings_template_reducer";
 import DeleteEmployeeReducer from "../delete_employee_reducer";
+import HidePayslipReducer from "../hide_payslip_reducer";
 import LoginReducer from "../login_reducer";
 import LogoutReducer from "../logout_reducer";
 import RejectPayslipReducer from "../reject_payslip_reducer";
+import RestorePayslipReducer from "../restore_payslip_reducer";
 import ResubmitPayslipReducer from "../resubmit_payslip_reducer";
 import SignPayslipReducer from "../sign_payslip_reducer";
 import SubmitPayslipReducer from "../submit_payslip_reducer";
@@ -36,9 +38,11 @@ export type DeleteDeductionsTemplateParams = __Infer<typeof DeleteDeductionsTemp
 export type DeleteDraftParams = __Infer<typeof DeleteDraftReducer>;
 export type DeleteEarningsTemplateParams = __Infer<typeof DeleteEarningsTemplateReducer>;
 export type DeleteEmployeeParams = __Infer<typeof DeleteEmployeeReducer>;
+export type HidePayslipParams = __Infer<typeof HidePayslipReducer>;
 export type LoginParams = __Infer<typeof LoginReducer>;
 export type LogoutParams = __Infer<typeof LogoutReducer>;
 export type RejectPayslipParams = __Infer<typeof RejectPayslipReducer>;
+export type RestorePayslipParams = __Infer<typeof RestorePayslipReducer>;
 export type ResubmitPayslipParams = __Infer<typeof ResubmitPayslipReducer>;
 export type SignPayslipParams = __Infer<typeof SignPayslipReducer>;
 export type SubmitPayslipParams = __Infer<typeof SubmitPayslipReducer>;

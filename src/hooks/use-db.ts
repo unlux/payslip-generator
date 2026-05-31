@@ -10,6 +10,7 @@ import type {
   DbEarningsTemplate,
   DbDeductionsTemplate,
   DbSignedPayslip,
+  DbHiddenPayslip,
   DbUser,
   FieldVisibilitySettings,
   PayComponent,
@@ -98,6 +99,33 @@ export function useEmployee(id: bigint | undefined): DbEmployee | null {
 
 export function usePayslipSubmissions(): DbPayslipSubmission[] {
   return useTableRows<DbPayslipSubmission>("submissionsView");
+}
+
+export function useHiddenPayslips(): DbHiddenPayslip[] {
+  return useTableRows<DbHiddenPayslip>("hiddenPayslipsView");
+}
+
+export function useHiddenPayslip(
+  submissionId: bigint | undefined,
+): DbHiddenPayslip | null {
+  const { conn, isSubscriptionReady, revision } =
+    useRevision("hiddenPayslipsView");
+
+  return useMemo(() => {
+    if (submissionId === undefined || !conn || !isSubscriptionReady)
+      return null;
+    try {
+      for (const hidden of conn.db.hiddenPayslipsView.iter()) {
+        if (hidden.submissionId === submissionId)
+          return hidden as DbHiddenPayslip;
+      }
+      return null;
+    } catch (err) {
+      console.error("useHiddenPayslip:", err);
+      return null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conn, isSubscriptionReady, submissionId, revision]);
 }
 
 export function useMyPayslipSubmissions(

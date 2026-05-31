@@ -12,6 +12,12 @@ export function StatusBadge({ status }: { status: string }) {
           Signed
         </Badge>
       );
+    case "hidden":
+      return (
+        <Badge variant="secondary" className="border-amber-500 text-amber-700">
+          Hidden
+        </Badge>
+      );
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }

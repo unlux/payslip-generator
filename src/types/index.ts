@@ -85,6 +85,14 @@ export interface DbPayslipSubmission {
   updatedAt: { microsSinceUnixEpoch: bigint };
 }
 
+export interface DbHiddenPayslip {
+  submissionId: bigint;
+  employeeId: bigint;
+  reason: string;
+  hiddenByUserId: bigint;
+  hiddenAt: { microsSinceUnixEpoch: bigint };
+}
+
 export interface DbSignedPayslip {
   submissionId: bigint;
   employeeId: bigint;

@@ -91,6 +91,18 @@ export type FieldVisibility = __Infer<typeof FieldVisibility>;
 export const FieldVisibilityView = __t.object("FieldVisibilityView", {});
 export type FieldVisibilityView = __Infer<typeof FieldVisibilityView>;
 
+export const HiddenPayslip = __t.object("HiddenPayslip", {
+  submissionId: __t.u64(),
+  employeeId: __t.u64(),
+  reason: __t.string(),
+  hiddenByUserId: __t.u64(),
+  hiddenAt: __t.timestamp(),
+});
+export type HiddenPayslip = __Infer<typeof HiddenPayslip>;
+
+export const HiddenPayslipsView = __t.object("HiddenPayslipsView", {});
+export type HiddenPayslipsView = __Infer<typeof HiddenPayslipsView>;
+
 export const PayslipSubmission = __t.object("PayslipSubmission", {
   id: __t.u64(),
   employeeId: __t.u64(),
@@ -111,6 +123,16 @@ export const PayslipSubmission = __t.object("PayslipSubmission", {
   updatedAt: __t.timestamp(),
 });
 export type PayslipSubmission = __Infer<typeof PayslipSubmission>;
+
+export const PayslipVisibilityEvent = __t.object("PayslipVisibilityEvent", {
+  id: __t.u64(),
+  submissionId: __t.u64(),
+  actorUserId: __t.u64(),
+  action: __t.string(),
+  reason: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type PayslipVisibilityEvent = __Infer<typeof PayslipVisibilityEvent>;
 
 export const SignedPayslip = __t.object("SignedPayslip", {
   submissionId: __t.u64(),

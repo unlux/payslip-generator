@@ -118,6 +118,49 @@ const payslipSubmission = table(
   },
 );
 
+const hiddenPayslip = table(
+  {
+    name: "hidden_payslip",
+    indexes: [
+      {
+        accessor: "byEmployeeId",
+        name: "hidden_payslip_employee",
+        algorithm: "btree" as const,
+        columns: ["employeeId"],
+      },
+    ],
+  },
+  {
+    submissionId: t.u64().primaryKey(),
+    employeeId: t.u64(),
+    reason: t.string(),
+    hiddenByUserId: t.u64(),
+    hiddenAt: t.timestamp(),
+  },
+);
+
+const payslipVisibilityEvent = table(
+  {
+    name: "payslip_visibility_event",
+    indexes: [
+      {
+        accessor: "bySubmissionId",
+        name: "payslip_visibility_event_submission",
+        algorithm: "btree" as const,
+        columns: ["submissionId"],
+      },
+    ],
+  },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    submissionId: t.u64(),
+    actorUserId: t.u64(),
+    action: t.string(), // "hide" | "restore"
+    reason: t.string(),
+    createdAt: t.timestamp(),
+  },
+);
+
 const signedPayslip = table(
   {
     name: "signed_payslip",
@@ -204,6 +247,8 @@ const spacetimedb = schema({
   company,
   employee,
   payslipSubmission,
+  hiddenPayslip,
+  payslipVisibilityEvent,
   signedPayslip,
   fieldVisibility,
   earningsTemplate,
@@ -215,6 +260,8 @@ export {
   company,
   employee,
   payslipSubmission,
+  hiddenPayslip,
+  payslipVisibilityEvent,
   signedPayslip,
   fieldVisibility,
   earningsTemplate,

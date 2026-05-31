@@ -8,6 +8,7 @@ import {
   useCompany,
   useFieldVisibility,
   useSignedPayslip,
+  useHiddenPayslip,
   centsToAmount,
   parseJsonPayComponents,
   parseJsonCustomFields,
@@ -20,7 +21,16 @@ import { downloadBase64Pdf } from "@/lib/pdf-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import type { PayslipDocumentProps } from "@/components/pdf/payslip-document";
 
@@ -41,9 +51,13 @@ export default function PayslipReviewPage({
   const company = useCompany();
   const fieldVisibility = useFieldVisibility();
   const signedPayslip = useSignedPayslip(submissionId);
+  const hiddenPayslip = useHiddenPayslip(submissionId);
   const { conn } = useStdb();
+  const isHidden = hiddenPayslip !== null;
 
   const [signing, setSigning] = useState(false);
+  const [hideOpen, setHideOpen] = useState(false);
+  const [hideReason, setHideReason] = useState("");
 
   const currencySymbol = getCurrencySymbol(company?.currency ?? "USD");
 
@@ -163,6 +177,24 @@ export default function PayslipReviewPage({
     }
   }
 
+  function handleHide() {
+    if (!conn || !submission) return;
+    const reason = hideReason.trim();
+    if (reason.length < 3 || reason.length > 250) {
+      toast.error("Reason must be between 3 and 250 characters");
+      return;
+    }
+
+    try {
+      conn.reducers.hidePayslip({ submissionId: submission.id, reason });
+      toast.success("Payslip hidden");
+      setHideReason("");
+      setHideOpen(false);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to hide payslip");
+    }
+  }
+
   if (!submissionId || !submission) {
     return (
       <div className="container mx-auto px-4 py-6">
@@ -193,12 +225,21 @@ export default function PayslipReviewPage({
             )}
             {submission.status === "signed" && (
               <>
-                <Badge
-                  variant="outline"
-                  className="border-green-500 text-green-700 dark:text-green-400"
-                >
-                  Signed
-                </Badge>
+                {isHidden ? (
+                  <Badge
+                    variant="secondary"
+                    className="border-amber-500 text-amber-700"
+                  >
+                    Hidden
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="border-green-500 text-green-700 dark:text-green-400"
+                  >
+                    Signed
+                  </Badge>
+                )}
                 {signedPayslip && (
                   <Button variant="outline" onClick={handleDownload}>
                     Download PDF
@@ -209,6 +250,28 @@ export default function PayslipReviewPage({
           </div>
         }
       />
+
+      {isHidden && hiddenPayslip && (
+        <Card className="mb-4 border-amber-500/40 bg-amber-500/5 p-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="secondary"
+                className="border-amber-500 text-amber-700"
+              >
+                Hidden
+              </Badge>
+              <p className="text-sm font-medium">This payslip is hidden.</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Reason: {hiddenPayslip.reason || "-"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Hidden: {stdbTimestampToDate(hiddenPayslip.hiddenAt).toLocaleString()}
+            </p>
+          </div>
+        </Card>
+      )}
 
       <Card className="p-6">
         <div className="space-y-6">
@@ -377,6 +440,56 @@ export default function PayslipReviewPage({
           )}
         </div>
       </Card>
+
+      {submission.status === "signed" && !isHidden && (
+        <Card className="mt-4 border-destructive/30 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">Hide this payslip</p>
+              <p className="text-sm text-muted-foreground">
+                Move this signed payslip out of normal lists while keeping it
+                traceable in Hidden Payslips.
+              </p>
+            </div>
+            <Button variant="destructive" onClick={() => setHideOpen(true)}>
+              Hide Payslip
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      <Dialog open={hideOpen} onOpenChange={setHideOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hide payslip?</DialogTitle>
+            <DialogDescription>
+              This removes the signed payslip from normal lists. It will remain
+              available in Hidden Payslips.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={hideReason}
+            onChange={(event) => setHideReason(event.target.value)}
+            maxLength={250}
+            placeholder="Reason, for example: wrong amount"
+          />
+          <p className="text-xs text-muted-foreground">
+            {hideReason.trim().length}/250 characters. Minimum 3 characters.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHideOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleHide}
+              disabled={hideReason.trim().length < 3}
+            >
+              Hide Payslip
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
